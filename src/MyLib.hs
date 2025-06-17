@@ -11,6 +11,7 @@ import Data.Map (Map, (!))
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.List (sortBy, minimumBy)
 
 type Color = Int
 type Row = Int
@@ -124,11 +125,28 @@ outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfCo
     isOut (AvailableCandidates s) = Set.size s == 0
     isOut _ = False
 
-genRowCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genRowCandidates problem partial = foldr interleave empty $ [ gen r s | (r, s) <- Map.toList partial.rowCandidates, s /= Satisfied ]
+data Candidate = 
+      RowCandidate Row (Set Column)
+    | ColumnCandidate Column (Set Row)
+    | ColorCandidate Color (Set (Row, Column))
+
+compareCandidates :: Candidate -> Candidate -> Ordering
+compareCandidates cand1 cand2 = compare (size cand1) (size cand2)
     where
-    gen r (AvailableCandidates s) = foldr interleave empty [ pure (r, c) | c <- Set.toList s, checkRowCandidate (r, c) problem partial ]
-    gen _ Satisfied = error "impossible"
+    size (RowCandidate _ s) = Set.size s
+    size (ColumnCandidate _ s) = Set.size s
+    size (ColorCandidate _ s) = Set.size s
+
+allCandidates :: Partial -> [Candidate]
+allCandidates partial = 
+    [ RowCandidate r s | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates ] ++
+    [ ColumnCandidate c s | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates ] ++
+    [ ColorCandidate color s | (color, AvailableCandidates s) <- Map.toList partial.colorCandidates ]
+
+expandCandidates :: Problem -> Partial -> Candidate -> [(Row, Column)]
+expandCandidates problem partial (RowCandidate r s) = [(r, c) | c <- Set.toList s, checkRowCandidate (r, c) problem partial]
+expandCandidates problem partial (ColumnCandidate c s) = [(r, c) | r <- Set.toList s, checkColumnCandidate (r, c) problem partial]
+expandCandidates problem partial (ColorCandidate color s) = [(i, j) | (i, j) <- Set.toList s, checkColorCandidate (i, j) problem partial]
 
 checkRowCandidate :: (Row, Column) -> Problem -> Partial -> Bool
 checkRowCandidate (r, c) problem partial = columnCheck && colorCheck
@@ -141,12 +159,6 @@ checkRowCandidate (r, c) problem partial = columnCheck && colorCheck
         Just (AvailableCandidates s) -> Set.member (r, c) s
         _ -> False 
 
-genColumnCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genColumnCandidates problem partial = foldr interleave empty $ [ gen c s | (c, s) <- Map.toList partial.columnCandidates, s /= Satisfied ]
-    where
-    gen c (AvailableCandidates s) = foldr interleave empty [ pure (r, c) | r <- Set.toList s, checkColumnCandidate (r, c) problem partial ]
-    gen _ Satisfied = error "impossible"
-
 checkColumnCandidate :: (Row, Column) -> Problem -> Partial -> Bool
 checkColumnCandidate (r, c) problem partial = rowCheck && colorCheck
     where
@@ -156,9 +168,6 @@ checkColumnCandidate (r, c) problem partial = rowCheck && colorCheck
     cellColor = problem.colors ! (r, c)
     colorCheck = case Map.lookup cellColor partial.colorCandidates of
         Just (AvailableCandidates s) -> Set.member (r, c) s
-
-genColorCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genColorCandidates problem partial = foldr interleave empty $ [ pure (i, j) | (_, AvailableCandidates s) <- Map.toList partial.colorCandidates, (i, j) <- Set.toList s, checkColorCandidate (i, j) problem partial ]
 
 checkColorCandidate :: (Row, Column) -> Problem -> Partial -> Bool
 checkColorCandidate (r, c) problem partial = rowCheck && columnCheck
@@ -171,8 +180,11 @@ checkColorCandidate (r, c) problem partial = rowCheck && columnCheck
         _ -> False
 
 genCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genCandidates problem partial = genRowCandidates problem partial
-    -- genRowCandidates problem partial `interleave` genColumnCandidates problem partial `interleave` genColorCandidates problem partial
+genCandidates problem partial
+    | null candidates = empty
+    | otherwise = let cand = minimumBy compareCandidates candidates in foldr interleave empty $ [ pure (x, y) | (x, y) <- expandCandidates problem partial cand ]
+    where
+        candidates = allCandidates partial
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
@@ -185,7 +197,6 @@ solve problem partial = do
 
 queenView :: Partial -> [(Int, Int)]
 queenView partial = [(x, y) | ((x, y), HasQueen) <- Map.toList partial.attempts]
-
 
 solutions :: (MonadLogic m) => Problem -> m (Partial)
 solutions problem = do 
@@ -221,7 +232,7 @@ exampleProblem = mkProblem
     ]
 
 -- https://queensgame.vercel.app/level/1
--- Pass, but takes a long time
+-- Pass
 exampleProblem2 :: Problem
 exampleProblem2 = mkProblem
     [ [0, 0, 1, 1, 1, 2, 2, 2]
@@ -257,6 +268,18 @@ exampleProblem4 = mkProblem
     , [2, 4, 4, 4, 3, 3, 3]
     , [2, 4, 4, 4, 5, 5, 6]
     , [2, 2, 2, 2, 5, 5, 5]
+    ]
+
+exampleProblem5 :: Problem
+exampleProblem5 = mkProblem
+    [ [0, 1, 1, 1, 2, 1, 1, 3]
+    , [0, 0, 0, 1, 2, 2, 1, 3]
+    , [1, 1, 1, 1, 1, 2, 1, 3]
+    , [4, 4, 4, 1, 1, 1, 1, 3]
+    , [4, 1, 1, 1, 1, 1, 1, 1]
+    , [1, 1, 1, 1, 5, 1, 1, 6]
+    , [7, 7, 1, 5, 5, 1, 6, 6]
+    , [7, 7, 1, 5, 1, 1, 1, 6]
     ]
 
 
