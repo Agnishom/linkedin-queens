@@ -58,10 +58,15 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  MyLib
+    exposed-modules:
+        Problem
+        Attempt4
 
     -- Modules included in this library but not exported.
-    -- other-modules:
+    other-modules:
+        Attempt1
+        Attempt2
+        Attempt3
 
     -- LANGUAGE extensions used by modules in this package.
     default-extensions:
@@ -111,6 +116,7 @@ executable linkedin-queens
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.19.2.0,
+        logict,
         linkedin-queens
 
     -- Directories containing source files.
