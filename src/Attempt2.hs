@@ -6,8 +6,9 @@ where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Logic
-import Data.Map (Map)
+import Data.Map (Map, (!))
 import qualified Data.Map as Map
+import Data.Maybe (isNothing)
 import Problem
 
 data Attempt = HasQueen | Eliminated
@@ -104,7 +105,7 @@ placeQueen problem (x, y) partial =
     cellColor = Map.lookup (x, y) problem.colors
 
 genCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genCandidates problem partial = foldr interleave empty [pure (x, y) | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1], Map.lookup (x, y) partial.attempts == Nothing]
+genCandidates problem partial = foldr interleave empty [pure (x, y) | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1], isNothing (Map.lookup (x, y) partial.attempts)]
 
 outOfCandidates :: Partial -> Bool
 outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfColorCandidates
@@ -143,5 +144,7 @@ mkPartial problem =
     { attempts = Map.empty,
       rowCandidates = Map.fromList [(r, AvailableCandidates problem.size) | r <- [0 .. problem.size - 1]],
       columnCandidates = Map.fromList [(c, AvailableCandidates problem.size) | c <- [0 .. problem.size - 1]],
-      colorCandidates = Map.fromList [(color, AvailableCandidates problem.size) | color <- [0 .. problem.size - 1]]
+      colorCandidates = Map.fromList [(color, AvailableCandidates $ colorSize color) | color <- [0 .. problem.size - 1]]
     }
+  where
+    colorSize color = length [(i, j) | i <- [0 .. problem.size - 1], j <- [0 .. problem.size - 1], problem.colors ! (i, j) == color]
