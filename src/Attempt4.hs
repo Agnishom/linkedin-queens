@@ -226,5 +226,7 @@ mkPartial problem =
     { attempts = Map.empty,
       rowCandidates = Map.fromList [(r, AvailableCandidates (Set.fromList [0 .. problem.size - 1])) | r <- [0 .. problem.size - 1]],
       columnCandidates = Map.fromList [(c, AvailableCandidates (Set.fromList [0 .. problem.size - 1])) | c <- [0 .. problem.size - 1]],
-      colorCandidates = Map.fromList [(color, AvailableCandidates (Set.fromList [(x, y) | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1]])) | color <- [0 .. problem.size - 1]]
+      colorCandidates = Map.fromList [(color, AvailableCandidates (colorCandidates color)) | color <- [0 .. problem.size - 1]]
     }
+  where
+    colorCandidates color = Set.fromList [(i, j) | i <- [0 .. problem.size - 1], j <- [0 .. problem.size - 1], problem.colors ! (i, j) == color]
