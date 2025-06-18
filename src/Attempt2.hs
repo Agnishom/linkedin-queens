@@ -118,7 +118,8 @@ outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfCo
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
-  guard (not (outOfCandidates partial))
+  -- if we are out of candidates, we abort this branch
+  guard (not $ outOfCandidates partial)
   ifte
     (genCandidates problem partial)
     ( \(x, y) -> do
