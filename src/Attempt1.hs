@@ -8,6 +8,7 @@ import Control.Monad
 import Control.Monad.Logic
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (isNothing)
 import Problem
 
 data Attempt = HasQueen | Eliminated
@@ -30,9 +31,17 @@ placeQueen problem (x, y) partial =
     cellColor = Map.lookup (x, y) problem.colors
 
 elimCorners :: Int -> (Row, Column) -> Partial -> Partial
-elimCorners size (x, y) partial = foldr (.) id elimFns $ partial
+elimCorners size (x, y) = foldr (.) id elimFns
   where
-    elimFns = [insertIfAbsent (x', y') Eliminated | x' <- [x - 1, x + 1], y' <- [y - 1, y + 1], x' >= 0, x' < size, y' >= 0, y' < size]
+    elimFns =
+      [ insertIfAbsent (x', y') Eliminated
+        | x' <- [x - 1, x + 1],
+          x' >= 0,
+          x' < size,
+          y' <- [y - 1, y + 1],
+          y' >= 0,
+          y' < size
+      ]
 
 elimColumn :: Int -> Column -> Partial -> Partial
 elimColumn size y partial = foldr elimRow' partial [0 .. size - 1]
@@ -50,9 +59,9 @@ elimColor problem color = foldr (.) id elimFns
     elimFns = [insertIfAbsent (x, y) Eliminated | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1], Map.lookup (x, y) problem.colors == Just color]
 
 genCandidates :: (MonadLogic m) => Int -> Partial -> m (Row, Column)
-genCandidates size partial = foldr interleave empty [pure (x, y) | x <- [0 .. size - 1], y <- [0 .. size - 1], Map.lookup (x, y) partial == Nothing]
+genCandidates size partial = foldr interleave empty [pure (x, y) | x <- [0 .. size - 1], y <- [0 .. size - 1], isNothing (Map.lookup (x, y) partial)]
 
-solve :: (MonadLogic m) => Problem -> Partial -> m (Partial)
+solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   ifte
     (genCandidates problem.size partial)
@@ -65,9 +74,9 @@ solve problem partial = do
 queenView :: Partial -> [(Row, Column)]
 queenView partial = [(x, y) | ((x, y), HasQueen) <- Map.toList partial]
 
-solutions :: (MonadLogic m) => Problem -> m ([(Row, Column)])
+solutions :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solutions problem = do
-  candidate <- solve problem (Map.empty)
+  candidate <- solve problem Map.empty
   let queens = queenView candidate
   -- Completeness: ensure enough queens were placed
   guard (length queens == problem.size)
