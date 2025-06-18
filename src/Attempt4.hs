@@ -150,47 +150,15 @@ allStrategies partial =
     ++ [ColumnStrategy c s | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates]
     ++ [ColorStrategy color s | (color, AvailableCandidates s) <- Map.toList partial.colorCandidates]
 
-expandStrategies :: Problem -> Partial -> Strategy -> [(Row, Column)]
-expandStrategies problem partial (RowStrategy r s) = [(r, c) | c <- Set.toList s, checkRowCandidate (r, c) problem partial]
-expandStrategies problem partial (ColumnStrategy c s) = [(r, c) | r <- Set.toList s, checkColumnCandidate (r, c) problem partial]
-expandStrategies _ partial (ColorStrategy _ s) = [(i, j) | (i, j) <- Set.toList s, checkColorCandidate (i, j) partial]
+expandStrategies :: Strategy -> [(Row, Column)]
+expandStrategies (RowStrategy r s) = [(r, c) | c <- Set.toList s]
+expandStrategies (ColumnStrategy c s) = [(r, c) | r <- Set.toList s]
+expandStrategies (ColorStrategy _ s) = [(i, j) | (i, j) <- Set.toList s]
 
-checkRowCandidate :: (Row, Column) -> Problem -> Partial -> Bool
-checkRowCandidate (r, c) problem partial = columnCheck && colorCheck
-  where
-    columnCheck = case Map.lookup c partial.columnCandidates of
-      Just (AvailableCandidates s) -> Set.member r s
-      _ -> False
-    cellColor = problem.colors ! (r, c)
-    colorCheck = case Map.lookup cellColor partial.colorCandidates of
-      Just (AvailableCandidates s) -> Set.member (r, c) s
-      _ -> False
-
-checkColumnCandidate :: (Row, Column) -> Problem -> Partial -> Bool
-checkColumnCandidate (r, c) problem partial = rowCheck && colorCheck
-  where
-    rowCheck = case Map.lookup r partial.rowCandidates of
-      Just (AvailableCandidates s) -> Set.member c s
-      _ -> False
-    cellColor = problem.colors ! (r, c)
-    colorCheck = case Map.lookup cellColor partial.colorCandidates of
-      Just (AvailableCandidates s) -> Set.member (r, c) s
-      _ -> False
-
-checkColorCandidate :: (Row, Column) -> Partial -> Bool
-checkColorCandidate (r, c) partial = rowCheck && columnCheck
-  where
-    rowCheck = case Map.lookup r partial.rowCandidates of
-      Just (AvailableCandidates s) -> Set.member c s
-      _ -> False
-    columnCheck = case Map.lookup c partial.columnCandidates of
-      Just (AvailableCandidates s) -> Set.member r s
-      _ -> False
-
-genCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genCandidates problem partial
+genCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
+genCandidates partial
   | null strategies = empty
-  | otherwise = foldr interleave empty $ [pure (x, y) | (x, y) <- expandStrategies problem partial bestStrategy]
+  | otherwise = foldr interleave empty $ [pure (x, y) | (x, y) <- expandStrategies bestStrategy]
   where
     strategies = allStrategies partial
     -- We choose the strategy with the least number of candidates
@@ -201,7 +169,7 @@ solve problem partial = do
   -- if there are no candidates left, we need to abort this branch
   guard (not (outOfCandidates partial))
   ifte
-    (genCandidates problem partial)
+    (genCandidates partial)
     ( \(x, y) -> do
         let newPartial = placeQueen problem (x, y) partial
         solve problem newPartial

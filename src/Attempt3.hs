@@ -114,62 +114,28 @@ outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfCo
     isOut (AvailableCandidates s) = Set.size s == 0
     isOut _ = False
 
-genRowCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genRowCandidates problem partial = foldr interleave empty $ [gen r s | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates]
+genRowCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
+genRowCandidates partial = foldr interleave empty $ [gen r s | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates]
   where
-    gen r s = foldr interleave empty [pure (r, c) | c <- Set.toList s, checkRowCandidate (r, c) problem partial]
+    gen r s = foldr interleave empty [pure (r, c) | c <- Set.toList s]
 
-checkRowCandidate :: (Row, Column) -> Problem -> Partial -> Bool
-checkRowCandidate (r, c) problem partial = columnCheck && colorCheck
+_genColumnCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
+_genColumnCandidates partial = foldr interleave empty $ [gen c s | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates]
   where
-    columnCheck = case Map.lookup c partial.columnCandidates of
-      Just (AvailableCandidates s) -> Set.member r s
-      _ -> False
-    cellColor = problem.colors ! (r, c)
-    colorCheck = case Map.lookup cellColor partial.colorCandidates of
-      Just (AvailableCandidates s) -> Set.member (r, c) s
-      _ -> False
+    gen c s = foldr interleave empty [pure (r, c) | r <- Set.toList s]
 
-genColumnCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genColumnCandidates problem partial = foldr interleave empty $ [gen c s | (c, s) <- Map.toList partial.columnCandidates, s /= Satisfied]
-  where
-    gen c (AvailableCandidates s) = foldr interleave empty [pure (r, c) | r <- Set.toList s, checkColumnCandidate (r, c) problem partial]
-    gen _ Satisfied = error "impossible"
+_genColorCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
+_genColorCandidates partial = foldr interleave empty $ [pure (i, j) | (_, AvailableCandidates s) <- Map.toList partial.colorCandidates, (i, j) <- Set.toList s]
 
-checkColumnCandidate :: (Row, Column) -> Problem -> Partial -> Bool
-checkColumnCandidate (r, c) problem partial = rowCheck && colorCheck
-  where
-    rowCheck = case Map.lookup r partial.rowCandidates of
-      Just (AvailableCandidates s) -> Set.member c s
-      _ -> False
-    cellColor = problem.colors ! (r, c)
-    colorCheck = case Map.lookup cellColor partial.colorCandidates of
-      Just (AvailableCandidates s) -> Set.member (r, c) s
-      _ -> False
-
-genColorCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-genColorCandidates partial = foldr interleave empty $ [pure (i, j) | (_, AvailableCandidates s) <- Map.toList partial.colorCandidates, (i, j) <- Set.toList s, checkColorCandidate (i, j) partial]
-
-checkColorCandidate :: (Row, Column) -> Partial -> Bool
-checkColorCandidate (r, c) partial = rowCheck && columnCheck
-  where
-    rowCheck = case Map.lookup r partial.rowCandidates of
-      Just (AvailableCandidates s) -> Set.member c s
-      _ -> False
-    columnCheck = case Map.lookup c partial.columnCandidates of
-      Just (AvailableCandidates s) -> Set.member r s
-      _ -> False
-
-genCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genCandidates problem partial =
-  genRowCandidates problem partial `interleave` genColumnCandidates problem partial `interleave` genColorCandidates partial
+genCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
+genCandidates = genRowCandidates
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   -- if there are no candidates left, we need to abort this branch
   guard (not (outOfCandidates partial))
   ifte
-    (genCandidates problem partial)
+    (genCandidates partial)
     ( \(x, y) -> do
         let newPartial = placeQueen problem (x, y) partial
         solve problem newPartial
