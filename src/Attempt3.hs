@@ -115,10 +115,9 @@ outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfCo
     isOut _ = False
 
 genRowCandidates :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
-genRowCandidates problem partial = foldr interleave empty $ [gen r s | (r, s) <- Map.toList partial.rowCandidates, s /= Satisfied]
+genRowCandidates problem partial = foldr interleave empty $ [gen r s | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates]
   where
-    gen r (AvailableCandidates s) = foldr interleave empty [pure (r, c) | c <- Set.toList s, checkRowCandidate (r, c) problem partial]
-    gen _ Satisfied = error "impossible"
+    gen r s = foldr interleave empty [pure (r, c) | c <- Set.toList s, checkRowCandidate (r, c) problem partial]
 
 checkRowCandidate :: (Row, Column) -> Problem -> Partial -> Bool
 checkRowCandidate (r, c) problem partial = columnCheck && colorCheck
