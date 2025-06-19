@@ -1,5 +1,5 @@
 module Attempt1
-  ( solutions,
+  ( solution,
   )
 where
 
@@ -14,57 +14,69 @@ import Problem
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
 
-type Partial = BoardOf Attempt
+type Board = Map (Row, Column)
+
+type Partial = Board Attempt
 
 insertIfAbsent :: (Ord k) => k -> a -> Map k a -> Map k a
-insertIfAbsent = Map.insertWith (flip const)
+insertIfAbsent = Map.insertWith (\_ x -> x)
 
 placeQueen :: Problem -> (Row, Column) -> Partial -> Partial
 placeQueen problem (x, y) partial =
-  elimCorners problem.size (x, y)
-    . elimColumn problem.size y
-    . elimRow problem.size x
-    . maybe id (elimColor problem) cellColor
+  elimCorners (x, y) problem
+    . elimColumn y problem
+    . elimRow x problem
+    . elimColor color problem
     $ newBoard
   where
     newBoard = Map.insert (x, y) HasQueen partial
-    cellColor = Map.lookup (x, y) problem.colors
+    color = problem ! (x, y)
 
-elimCorners :: Int -> (Row, Column) -> Partial -> Partial
-elimCorners size (x, y) = foldr (.) id elimFns
+elimCorners :: (Row, Column) -> Problem -> Partial -> Partial
+elimCorners (x, y) problem = foldr (.) id elimFns
   where
+    n = size problem
     elimFns =
       [ insertIfAbsent (x', y') Eliminated
         | x' <- [x - 1, x + 1],
           x' >= 0,
-          x' < size,
+          x' < n,
           y' <- [y - 1, y + 1],
           y' >= 0,
-          y' < size
+          y' < n
       ]
 
-elimColumn :: Int -> Column -> Partial -> Partial
-elimColumn size y partial = foldr elimRow' partial [0 .. size - 1]
+elimColumn :: Column -> Problem -> Partial -> Partial
+elimColumn y problem partial = foldr elimRow' partial [0 .. size problem - 1]
   where
     elimRow' x' = insertIfAbsent (x', y) Eliminated
 
-elimRow :: Int -> Row -> Partial -> Partial
-elimRow size x partial = foldr elimColumn' partial [0 .. size - 1]
+elimRow :: Row -> Problem -> Partial -> Partial
+elimRow x problem partial = foldr elimColumn' partial [0 .. size problem - 1]
   where
     elimColumn' y' = insertIfAbsent (x, y') Eliminated
 
-elimColor :: Problem -> Color -> Partial -> Partial
-elimColor problem color = foldr (.) id elimFns
+elimColor :: Color -> Problem -> Partial -> Partial
+elimColor color problem = foldr (.) id elimFns
   where
-    elimFns = [insertIfAbsent (x, y) Eliminated | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1], Map.lookup (x, y) problem.colors == Just color]
+    n = size problem
+    elimFns = [insertIfAbsent (x, y) Eliminated | x <- [0 .. n - 1], y <- [0 .. n - 1], problem ! (x, y) == color]
 
-genCandidates :: (MonadLogic m) => Int -> Partial -> m (Row, Column)
-genCandidates size partial = foldr interleave empty [pure (x, y) | x <- [0 .. size - 1], y <- [0 .. size - 1], isNothing (Map.lookup (x, y) partial)]
+choose :: (MonadLogic m, Foldable t) => t a -> m a
+choose = foldr ((<|>) . pure) empty
+
+candidate :: (MonadLogic m) => Problem -> Partial -> m (Row, Column)
+candidate problem partial = do
+  let n = size problem
+  x <- choose [0 .. n - 1]
+  y <- choose [0 .. n - 1]
+  guard (isNothing (Map.lookup (x, y) partial))
+  pure (x, y)
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
-  ifte
-    (genCandidates problem.size partial)
+  ifte -- if-then-else
+    (candidate problem partial)
     ( \(x, y) -> do
         let newBoard = placeQueen problem (x, y) partial
         solve problem newBoard
@@ -72,12 +84,12 @@ solve problem partial = do
     (pure partial)
 
 queenView :: Partial -> [(Row, Column)]
-queenView partial = [(x, y) | ((x, y), HasQueen) <- Map.toList partial]
+queenView partial = [(x, y) | ((x, y), status) <- Map.toList partial, status == HasQueen]
 
-solutions :: (MonadLogic m) => Problem -> m [(Row, Column)]
-solutions problem = do
-  candidate <- solve problem Map.empty
-  let queens = queenView candidate
+solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
+solution problem = do
+  endState <- solve problem Map.empty
+  let queens = queenView endState
   -- Completeness: ensure enough queens were placed
-  guard (length queens == problem.size)
+  guard (length queens == size problem)
   pure queens

@@ -1,5 +1,5 @@
 module Attempt4
-  ( solutions,
+  ( solution,
   )
 where
 
@@ -7,14 +7,17 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Logic
 import Data.List (minimumBy)
-import Data.Map (Map, (!))
+import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (isJust)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Problem
 
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
+
+type Board = Map (Row, Column)
 
 data Remaining a = Satisfied | AvailableCandidates (Set a)
   deriving (Show, Eq)
@@ -28,7 +31,7 @@ remove _ Satisfied = Satisfied
 -- | Data structure representing our progress in solving the problem
 data Partial = Partial
   { -- | Whether each square has a queen, or has been eliminated
-    attempts :: BoardOf Attempt,
+    attempts :: Board Attempt,
     -- | For each row i, whether it already has a queen,
     -- | or a set of columns j, such that placing a queen
     -- | in (i, j) is still possible
@@ -45,28 +48,22 @@ data Partial = Partial
 -- | Mark a cell in the board as eliminated, and update the candidates accordingly
 -- | If the cell already has a queen, do nothing
 eliminate :: (Row, Column) -> Problem -> Partial -> Partial
-eliminate (x, y) problem partial =
-  Partial
-    { attempts = newAttempts,
-      rowCandidates = newRowCandidates,
-      columnCandidates = newColumnCandidates,
-      colorCandidates = newColorCandidates
-    }
+eliminate (x, y) problem partial
+  | isJust currentCellValue = partial
+  | otherwise =
+      Partial
+        { attempts = newAttempts,
+          rowCandidates = newRowCandidates,
+          columnCandidates = newColumnCandidates,
+          colorCandidates = newColorCandidates
+        }
   where
-    cellColor = Map.lookup (x, y) problem.colors
+    color = problem ! (x, y)
     currentCellValue = Map.lookup (x, y) partial.attempts
-    newAttempts = case currentCellValue of
-      Nothing -> Map.insert (x, y) Eliminated partial.attempts
-      _ -> partial.attempts
-    newRowCandidates = case currentCellValue of
-      Nothing -> Map.adjust (remove y) x partial.rowCandidates
-      Just _ -> partial.rowCandidates
-    newColumnCandidates = case currentCellValue of
-      Nothing -> Map.adjust (remove x) y partial.columnCandidates
-      Just _ -> partial.columnCandidates
-    newColorCandidates = case (currentCellValue, cellColor) of
-      (Nothing, Just color) -> Map.adjust (remove (x, y)) color partial.colorCandidates
-      _ -> partial.colorCandidates
+    newAttempts = Map.insert (x, y) Eliminated partial.attempts
+    newRowCandidates = Map.adjust (remove y) x partial.rowCandidates
+    newColumnCandidates = Map.adjust (remove x) y partial.columnCandidates
+    newColorCandidates = Map.adjust (remove (x, y)) color partial.colorCandidates
 
 elimCorners :: (Row, Column) -> Problem -> Partial -> Partial
 elimCorners (x, y) problem = foldr (.) id elimFns
@@ -75,26 +72,26 @@ elimCorners (x, y) problem = foldr (.) id elimFns
       [ eliminate (x', y') problem
         | x' <- [x - 1, x + 1],
           x' >= 0,
-          x' < problem.size,
+          x' < size problem,
           y' <- [y - 1, y + 1],
           y' >= 0,
-          y' < problem.size
+          y' < size problem
       ]
 
 elimColumn :: Column -> Problem -> Partial -> Partial
-elimColumn j problem partial = foldr elimCell partial [0 .. problem.size - 1]
+elimColumn j problem partial = foldr elimCell partial [0 .. size problem - 1]
   where
     elimCell i = eliminate (i, j) problem
 
 elimRow :: Row -> Problem -> Partial -> Partial
-elimRow i problem partial = foldr elimCell partial [0 .. problem.size - 1]
+elimRow i problem partial = foldr elimCell partial [0 .. size problem - 1]
   where
     elimCell j = eliminate (i, j) problem
 
 elimColor :: Color -> Problem -> Partial -> Partial
 elimColor color problem = foldr (.) id elimFns
   where
-    elimFns = [eliminate (x, y) problem | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1], Map.lookup (x, y) problem.colors == Just color]
+    elimFns = [eliminate (x, y) problem | x <- [0 .. size problem - 1], y <- [0 .. size problem - 1], problem ! (x, y) == color]
 
 -- | Place a queen in the given cell, and update the partial progress
 -- | This eiliminates a number of other candidates sharing the same
@@ -104,7 +101,7 @@ placeQueen problem (x, y) partial =
   elimCorners (x, y) problem
     . elimColumn y problem
     . elimRow x problem
-    . maybe id (`elimColor` problem) cellColor
+    . elimColor color problem
     $ Partial
       { attempts = newAttempts,
         rowCandidates = newRowCandidates,
@@ -115,10 +112,8 @@ placeQueen problem (x, y) partial =
     newAttempts = Map.insert (x, y) HasQueen partial.attempts
     newRowCandidates = Map.insert x Satisfied partial.rowCandidates
     newColumnCandidates = Map.insert y Satisfied partial.columnCandidates
-    newColorCandidates = case cellColor of
-      Just color -> Map.insert color Satisfied partial.colorCandidates
-      Nothing -> error "No color found for the cell"
-    cellColor = Map.lookup (x, y) problem.colors
+    newColorCandidates = Map.insert color Satisfied partial.colorCandidates
+    color = problem ! (x, y)
 
 outOfCandidates :: Partial -> Bool
 outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfColorCandidates
@@ -138,11 +133,11 @@ data Strategy
 
 -- | A strategy is better than another if it has fewer candidates
 compareStrategies :: Strategy -> Strategy -> Ordering
-compareStrategies cand1 cand2 = compare (size cand1) (size cand2)
+compareStrategies cand1 cand2 = compare (card cand1) (card cand2)
   where
-    size (RowStrategy _ s) = Set.size s
-    size (ColumnStrategy _ s) = Set.size s
-    size (ColorStrategy _ s) = Set.size s
+    card (RowStrategy _ s) = Set.size s
+    card (ColumnStrategy _ s) = Set.size s
+    card (ColorStrategy _ s) = Set.size s
 
 allStrategies :: Partial -> [Strategy]
 allStrategies partial =
@@ -150,15 +145,18 @@ allStrategies partial =
     ++ [ColumnStrategy c s | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates]
     ++ [ColorStrategy color s | (color, AvailableCandidates s) <- Map.toList partial.colorCandidates]
 
-expandStrategies :: Strategy -> [(Row, Column)]
-expandStrategies (RowStrategy r s) = [(r, c) | c <- Set.toList s]
-expandStrategies (ColumnStrategy c s) = [(r, c) | r <- Set.toList s]
-expandStrategies (ColorStrategy _ s) = [(i, j) | (i, j) <- Set.toList s]
+choose :: (MonadLogic m, Foldable t) => t a -> m a
+choose = foldr ((<|>) . pure) empty
 
-genCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-genCandidates partial
+expandStrategy :: (MonadLogic m) => Strategy -> m (Row, Column)
+expandStrategy (RowStrategy r s) = (r,) <$> choose s
+expandStrategy (ColumnStrategy c s) = (,c) <$> choose s
+expandStrategy (ColorStrategy _ s) = choose s
+
+candidate :: (MonadLogic m) => Partial -> m (Row, Column)
+candidate partial
   | null strategies = empty
-  | otherwise = foldr interleave empty $ [pure (x, y) | (x, y) <- expandStrategies bestStrategy]
+  | otherwise = expandStrategy bestStrategy
   where
     strategies = allStrategies partial
     -- We choose the strategy with the least number of candidates
@@ -168,33 +166,36 @@ solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   -- if there are no candidates left, we need to abort this branch
   guard (not (outOfCandidates partial))
-  ifte
-    (genCandidates partial)
+  ifte -- if-then-else
+    (candidate partial) -- choose a candidate
     ( \(x, y) -> do
+        -- place the queen in the chosen cell
         let newPartial = placeQueen problem (x, y) partial
+        -- continue to place the rest of the queens
         solve problem newPartial
     )
+    -- if there are no more candidates, return the current state
     (pure partial)
 
 queenView :: Partial -> [(Row, Column)]
-queenView partial = [(x, y) | ((x, y), HasQueen) <- Map.toList partial.attempts]
+queenView partial = [(x, y) | ((x, y), status) <- Map.toList partial.attempts, status == HasQueen]
 
-solutions :: (MonadLogic m) => Problem -> m [(Row, Column)]
-solutions problem = do
-  candidate <- solve problem (mkPartial problem)
-  let queens = queenView candidate
+solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
+solution problem = do
+  endState <- solve problem (mkPartial problem)
+  let queens = queenView endState
   -- Completeness: ensure enough queens were placed
-  guard (length queens == problem.size)
+  guard (length queens == size problem)
   pure queens
 
--- | Create an initial empty partial solution for the given problem
+-- -- | Create an initial empty partial solution for the given problem
 mkPartial :: Problem -> Partial
 mkPartial problem =
   Partial
     { attempts = Map.empty,
-      rowCandidates = Map.fromList [(r, AvailableCandidates (Set.fromList [0 .. problem.size - 1])) | r <- [0 .. problem.size - 1]],
-      columnCandidates = Map.fromList [(c, AvailableCandidates (Set.fromList [0 .. problem.size - 1])) | c <- [0 .. problem.size - 1]],
-      colorCandidates = Map.fromList [(color, AvailableCandidates (colorCandidates color)) | color <- [0 .. problem.size - 1]]
+      rowCandidates = Map.fromList [(r, AvailableCandidates (Set.fromList [0 .. size problem - 1])) | r <- [0 .. size problem - 1]],
+      columnCandidates = Map.fromList [(c, AvailableCandidates (Set.fromList [0 .. size problem - 1])) | c <- [0 .. size problem - 1]],
+      colorCandidates = Map.fromList [(color, AvailableCandidates (colorCandidates color)) | color <- [0 .. size problem - 1]]
     }
   where
-    colorCandidates color = Set.fromList [(i, j) | i <- [0 .. problem.size - 1], j <- [0 .. problem.size - 1], problem.colors ! (i, j) == color]
+    colorCandidates color = Set.fromList [(i, j) | i <- [0 .. size problem - 1], j <- [0 .. size problem - 1], problem ! (i, j) == color]

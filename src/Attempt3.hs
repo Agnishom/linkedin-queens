@@ -1,19 +1,22 @@
 module Attempt3
-  ( solutions,
+  ( solution,
   )
 where
 
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Logic
-import Data.Map (Map, (!))
+import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe (isJust)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Problem
 
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
+
+type Board = Map (Row, Column)
 
 data Remaining a = Satisfied | AvailableCandidates (Set a)
   deriving (Show, Eq)
@@ -25,7 +28,7 @@ remove x (AvailableCandidates s)
 remove _ Satisfied = Satisfied
 
 data Partial = Partial
-  { attempts :: BoardOf Attempt,
+  { attempts :: Board Attempt,
     rowCandidates :: Map Row (Remaining Column),
     columnCandidates :: Map Column (Remaining Row),
     colorCandidates :: Map Color (Remaining (Row, Column))
@@ -33,28 +36,22 @@ data Partial = Partial
   deriving (Show, Eq)
 
 eliminate :: (Row, Column) -> Problem -> Partial -> Partial
-eliminate (x, y) problem partial =
-  Partial
-    { attempts = newAttempts,
-      rowCandidates = newRowCandidates,
-      columnCandidates = newColumnCandidates,
-      colorCandidates = newColorCandidates
-    }
+eliminate (x, y) problem partial
+  | isJust currentCellValue = partial
+  | otherwise =
+      Partial
+        { attempts = newAttempts,
+          rowCandidates = newRowCandidates,
+          columnCandidates = newColumnCandidates,
+          colorCandidates = newColorCandidates
+        }
   where
-    cellColor = Map.lookup (x, y) problem.colors
+    color = problem ! (x, y)
     currentCellValue = Map.lookup (x, y) partial.attempts
-    newAttempts = case currentCellValue of
-      Nothing -> Map.insert (x, y) Eliminated partial.attempts
-      _ -> partial.attempts
-    newRowCandidates = case currentCellValue of
-      Nothing -> Map.adjust (remove y) x partial.rowCandidates
-      Just _ -> partial.rowCandidates
-    newColumnCandidates = case currentCellValue of
-      Nothing -> Map.adjust (remove x) y partial.columnCandidates
-      Just _ -> partial.columnCandidates
-    newColorCandidates = case (currentCellValue, cellColor) of
-      (Nothing, Just color) -> Map.adjust (remove (x, y)) color partial.colorCandidates
-      _ -> partial.colorCandidates
+    newAttempts = Map.insert (x, y) Eliminated partial.attempts
+    newRowCandidates = Map.adjust (remove y) x partial.rowCandidates
+    newColumnCandidates = Map.adjust (remove x) y partial.columnCandidates
+    newColorCandidates = Map.adjust (remove (x, y)) color partial.colorCandidates
 
 elimCorners :: (Row, Column) -> Problem -> Partial -> Partial
 elimCorners (x, y) problem = foldr (.) id elimFns
@@ -63,33 +60,33 @@ elimCorners (x, y) problem = foldr (.) id elimFns
       [ eliminate (x', y') problem
         | x' <- [x - 1, x + 1],
           x' >= 0,
-          x' < problem.size,
+          x' < size problem,
           y' <- [y - 1, y + 1],
           y' >= 0,
-          y' < problem.size
+          y' < size problem
       ]
 
 elimColumn :: Column -> Problem -> Partial -> Partial
-elimColumn j problem partial = foldr elimCell partial [0 .. problem.size - 1]
+elimColumn j problem partial = foldr elimCell partial [0 .. size problem - 1]
   where
     elimCell i = eliminate (i, j) problem
 
 elimRow :: Row -> Problem -> Partial -> Partial
-elimRow i problem partial = foldr elimCell partial [0 .. problem.size - 1]
+elimRow i problem partial = foldr elimCell partial [0 .. size problem - 1]
   where
     elimCell j = eliminate (i, j) problem
 
 elimColor :: Color -> Problem -> Partial -> Partial
 elimColor color problem = foldr (.) id elimFns
   where
-    elimFns = [eliminate (x, y) problem | x <- [0 .. problem.size - 1], y <- [0 .. problem.size - 1], Map.lookup (x, y) problem.colors == Just color]
+    elimFns = [eliminate (x, y) problem | x <- [0 .. size problem - 1], y <- [0 .. size problem - 1], problem ! (x, y) == color]
 
 placeQueen :: Problem -> (Row, Column) -> Partial -> Partial
 placeQueen problem (x, y) partial =
   elimCorners (x, y) problem
     . elimColumn y problem
     . elimRow x problem
-    . maybe id (`elimColor` problem) cellColor
+    . elimColor color problem
     $ Partial
       { attempts = newAttempts,
         rowCandidates = newRowCandidates,
@@ -100,10 +97,8 @@ placeQueen problem (x, y) partial =
     newAttempts = Map.insert (x, y) HasQueen partial.attempts
     newRowCandidates = Map.insert x Satisfied partial.rowCandidates
     newColumnCandidates = Map.insert y Satisfied partial.columnCandidates
-    newColorCandidates = case cellColor of
-      Just color -> Map.insert color Satisfied partial.colorCandidates
-      Nothing -> error "No color found for the cell"
-    cellColor = Map.lookup (x, y) problem.colors
+    newColorCandidates = Map.insert color Satisfied partial.colorCandidates
+    color = problem ! (x, y)
 
 outOfCandidates :: Partial -> Bool
 outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfColorCandidates
@@ -114,28 +109,44 @@ outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfCo
     isOut (AvailableCandidates s) = Set.size s == 0
     isOut _ = False
 
-genRowCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-genRowCandidates partial = foldr interleave empty $ [gen r s | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates]
-  where
-    gen r s = foldr interleave empty [pure (r, c) | c <- Set.toList s]
+choose :: (MonadLogic m, Foldable t) => t a -> m a
+choose = foldr ((<|>) . pure) empty
 
-_genColumnCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-_genColumnCandidates partial = foldr interleave empty $ [gen c s | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates]
-  where
-    gen c s = foldr interleave empty [pure (r, c) | r <- Set.toList s]
+rowCandidate :: (MonadLogic m) => Partial -> m (Row, Column)
+rowCandidate partial = do
+  (r, remaining) <- choose $ Map.toList partial.rowCandidates
+  s <- case remaining of
+    AvailableCandidates s' -> pure s'
+    Satisfied -> empty
+  c <- choose s
+  pure (r, c)
 
-_genColorCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-_genColorCandidates partial = foldr interleave empty $ [pure (i, j) | (_, AvailableCandidates s) <- Map.toList partial.colorCandidates, (i, j) <- Set.toList s]
+_columnCandidate :: (MonadLogic m) => Partial -> m (Row, Column)
+_columnCandidate partial = do
+  (c, remaining) <- choose $ Map.toList partial.columnCandidates
+  s <- case remaining of
+    AvailableCandidates s' -> pure s'
+    Satisfied -> empty
+  r <- choose s
+  pure (r, c)
 
-genCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-genCandidates = genRowCandidates
+_colorCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
+_colorCandidates partial = do
+  (_, remaining) <- choose $ Map.toList partial.colorCandidates
+  s <- case remaining of
+    AvailableCandidates s' -> pure s'
+    Satisfied -> empty
+  (i, j) <- choose s
+  pure (i, j)
+
+candidate :: (MonadLogic m) => Partial -> m (Row, Column)
+candidate = rowCandidate
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
-  -- if there are no candidates left, we need to abort this branch
   guard (not (outOfCandidates partial))
   ifte
-    (genCandidates partial)
+    (candidate partial)
     ( \(x, y) -> do
         let newPartial = placeQueen problem (x, y) partial
         solve problem newPartial
@@ -143,23 +154,23 @@ solve problem partial = do
     (pure partial)
 
 queenView :: Partial -> [(Row, Column)]
-queenView partial = [(x, y) | ((x, y), HasQueen) <- Map.toList partial.attempts]
+queenView partial = [(x, y) | ((x, y), status) <- Map.toList partial.attempts, status == HasQueen]
 
-solutions :: (MonadLogic m) => Problem -> m [(Row, Column)]
-solutions problem = do
-  candidate <- solve problem (mkPartial problem)
-  let queens = queenView candidate
+solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
+solution problem = do
+  endState <- solve problem (mkPartial problem)
+  let queens = queenView endState
   -- Completeness: ensure enough queens were placed
-  guard (length queens == problem.size)
+  guard (length queens == size problem)
   pure queens
 
 mkPartial :: Problem -> Partial
 mkPartial problem =
   Partial
     { attempts = Map.empty,
-      rowCandidates = Map.fromList [(r, AvailableCandidates (Set.fromList [0 .. problem.size - 1])) | r <- [0 .. problem.size - 1]],
-      columnCandidates = Map.fromList [(c, AvailableCandidates (Set.fromList [0 .. problem.size - 1])) | c <- [0 .. problem.size - 1]],
-      colorCandidates = Map.fromList [(color, AvailableCandidates (colorCandidates color)) | color <- [0 .. problem.size - 1]]
+      rowCandidates = Map.fromList [(r, AvailableCandidates (Set.fromList [0 .. size problem - 1])) | r <- [0 .. size problem - 1]],
+      columnCandidates = Map.fromList [(c, AvailableCandidates (Set.fromList [0 .. size problem - 1])) | c <- [0 .. size problem - 1]],
+      colorCandidates = Map.fromList [(color, AvailableCandidates (colorCandidates color)) | color <- [0 .. size problem - 1]]
     }
   where
-    colorCandidates color = Set.fromList [(i, j) | i <- [0 .. problem.size - 1], j <- [0 .. problem.size - 1], problem.colors ! (i, j) == color]
+    colorCandidates color = Set.fromList [(i, j) | i <- [0 .. size problem - 1], j <- [0 .. size problem - 1], problem ! (i, j) == color]

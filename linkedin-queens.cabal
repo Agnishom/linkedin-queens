@@ -87,11 +87,13 @@ library
         NamedFieldPuns
         ViewPatterns
         QuantifiedConstraints
+        TupleSections
 
     -- Other library packages from which modules are imported.
     build-depends:    
         base ^>=4.19.2.0,
         containers,
+        array,
         logict,
 
     -- Directories containing source files.
