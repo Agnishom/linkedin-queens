@@ -14,9 +14,7 @@ import Problem
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
 
-type Board = Map (Row, Column)
-
-type Partial = Board Attempt
+type Partial = Map (Row, Column) Attempt
 
 insertIfAbsent :: (Ord k) => k -> a -> Map k a -> Map k a
 insertIfAbsent = Map.insertWith (\_ x -> x)
