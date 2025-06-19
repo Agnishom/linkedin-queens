@@ -128,8 +128,8 @@ _columnCandidate partial = do
   r <- choose s
   pure (r, c)
 
-_colorCandidates :: (MonadLogic m) => Partial -> m (Row, Column)
-_colorCandidates partial = do
+_colorCandidate :: (MonadLogic m) => Partial -> m (Row, Column)
+_colorCandidate partial = do
   (_, remaining) <- choose $ Map.toList partial.colorCandidates
   s <- case remaining of
     AvailableCandidates s' -> pure s'
