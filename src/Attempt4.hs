@@ -17,8 +17,6 @@ import Problem
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
 
-type Board = Map (Row, Column)
-
 data Remaining a = Satisfied | AvailableCandidates (Set a)
   deriving (Show, Eq)
 
@@ -31,7 +29,7 @@ remove _ Satisfied = Satisfied
 -- | Data structure representing our progress in solving the problem
 data Partial = Partial
   { -- | Whether each square has a queen, or has been eliminated
-    attempts :: Board Attempt,
+    attempts :: Map (Row, Column) Attempt,
     -- | For each row i, whether it already has a queen,
     -- | or a set of columns j, such that placing a queen
     -- | in (i, j) is still possible

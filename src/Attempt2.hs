@@ -14,8 +14,6 @@ import Problem
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
 
-type Board = Map (Row, Column)
-
 data Remaining = Satisfied | AvailableCandidates Int
   deriving (Show, Eq)
 
@@ -26,7 +24,7 @@ decrease (AvailableCandidates n)
 decrease Satisfied = Satisfied
 
 data Partial = Partial
-  { attempts :: Board Attempt,
+  { attempts :: Map (Row, Column) Attempt,
     rowCandidates :: Map Row Remaining,
     columnCandidates :: Map Column Remaining,
     colorCandidates :: Map Color Remaining

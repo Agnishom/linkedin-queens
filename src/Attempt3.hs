@@ -16,8 +16,6 @@ import Problem
 data Attempt = HasQueen | Eliminated
   deriving (Show, Eq)
 
-type Board = Map (Row, Column)
-
 data Remaining a = Satisfied | AvailableCandidates (Set a)
   deriving (Show, Eq)
 
@@ -28,7 +26,7 @@ remove x (AvailableCandidates s)
 remove _ Satisfied = Satisfied
 
 data Partial = Partial
-  { attempts :: Board Attempt,
+  { attempts :: Map (Row, Column) Attempt,
     rowCandidates :: Map Row (Remaining Column),
     columnCandidates :: Map Column (Remaining Row),
     colorCandidates :: Map Color (Remaining (Row, Column))
