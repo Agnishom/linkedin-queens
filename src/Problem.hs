@@ -27,7 +27,9 @@ type Problem = Array (Row, Column) Color
 
 mkProblem :: [[Color]] -> Problem
 mkProblem colorsList =
-  Array.array ((0, 0), (n - 1, n - 1)) [((i, j), color) | (i, row) <- zip [0 ..] colorsList, (j, color) <- zip [0 ..] row]
+  Array.array
+    ((0, 0), (n - 1, n - 1))
+    [((i, j), color) | (i, row) <- zip [0 ..] colorsList, (j, color) <- zip [0 ..] row]
   where
     n = length colorsList
 
