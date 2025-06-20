@@ -1,0 +1,82 @@
+# This file was generated from a .cabal file.
+# For more information about hpack, see: https://github.com/sol/hpack
+
+name:                linkedin-queens
+version:             0.1.0.0
+
+# A short (one-line) description of the package.
+# synopsis:
+
+# A longer description of the package.
+# description:
+
+license:             BSD-3-Clause
+license-file:        LICENSE
+author:              Agnishom Chattopadhyay
+maintainer:          agnishom.chattopadhyay@imiron.io
+
+# A copyright notice.
+# copyright:
+
+# The project's homepage and issue tracker.
+# homepage:            https://github.com/your-name/linkedin-queens#readme
+# bug-reports:         https://github.com/your-name/linkedin-queens/issues
+
+# Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
+extra-source-files:
+- CHANGELOG.md
+
+# Common GHC options used throughout the package.
+ghc-options:
+- -Wall
+
+# Defines the library component of the package.
+library:
+  source-dirs: src
+  exposed-modules:
+  - Problem
+  - Attempt5
+  other-modules:
+  - Attempt0
+  - Attempt1
+  - Attempt2
+  - Attempt3
+  - Attempt4
+  dependencies:
+  - base >= 4.19 && < 4.20
+  - containers
+  - heaps >= 0.4.1
+  - array
+  - logict
+  default-extensions:
+  - BlockArguments
+  - DeriveAnyClass
+  - DerivingStrategies
+  - DerivingVia
+  - DuplicateRecordFields
+  - FunctionalDependencies
+  - LambdaCase
+  - MonoLocalBinds
+  - MultiWayIf
+  - NamedFieldPuns
+  - NoFieldSelectors
+  - OverloadedLabels
+  - OverloadedRecordDot
+  - OverloadedStrings
+  - PatternSynonyms
+  - QuantifiedConstraints
+  - TupleSections
+  - ViewPatterns
+  language: Haskell2010
+
+# Defines the executable component of the package.
+executables:
+  linkedin-queens:
+    main:                Main.hs
+    source-dirs:         app
+    dependencies:
+    - base >= 4.19 && < 4.20
+    - logict
+    - linkedin-queens  # Dependency on the local library
+    language:    Haskell2010
+

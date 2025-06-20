@@ -6,6 +6,7 @@ where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Logic
+import Data.Function (on)
 import Data.List (minimumBy)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -123,41 +124,25 @@ placeQueen problem (x, y) partial = elimAll newPartial
 
 -- | A strategy is a set of (Row, Column) candidates such that at least one
 -- | of them must be included in the completion of the solution
-data Strategy
-  = RowStrategy Row (Set Column)
-  | ColumnStrategy Column (Set Row)
-  | ColorStrategy Color (Set (Row, Column))
+type Strategy = Set (Row, Column)
 
--- | A strategy is better than another if it has fewer candidates
-compareStrategies :: Strategy -> Strategy -> Ordering
-compareStrategies cand1 cand2 = compare (card cand1) (card cand2)
-  where
-    card (RowStrategy _ s) = Set.size s
-    card (ColumnStrategy _ s) = Set.size s
-    card (ColorStrategy _ s) = Set.size s
-
-allStrategies :: Partial -> [Strategy]
-allStrategies partial =
-  [RowStrategy r s | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates]
-    ++ [ColumnStrategy c s | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates]
-    ++ [ColorStrategy color s | (color, AvailableCandidates s) <- Map.toList partial.colorCandidates]
+strategies :: Partial -> [Strategy]
+strategies partial =
+  [Set.fromList [(r, c) | c <- Set.toList s] | (r, AvailableCandidates s) <- Map.toList partial.rowCandidates]
+    ++ [Set.fromList [(r, c) | r <- Set.toList s] | (c, AvailableCandidates s) <- Map.toList partial.columnCandidates]
+    ++ [Set.fromList [(i, j) | (i, j) <- Set.toList s] | (_, AvailableCandidates s) <- Map.toList partial.colorCandidates]
 
 choose :: (MonadLogic m, Foldable t) => t a -> m a
 choose = foldr ((<|>) . pure) empty
 
-expandStrategy :: (MonadLogic m) => Strategy -> m (Row, Column)
-expandStrategy (RowStrategy r s) = (r,) <$> choose s
-expandStrategy (ColumnStrategy c s) = (,c) <$> choose s
-expandStrategy (ColorStrategy _ s) = choose s
-
 candidate :: (MonadLogic m) => Partial -> m (Row, Column)
 candidate partial
-  | null strategies = empty
-  | otherwise = expandStrategy bestStrategy
+  | null availableStrategies = empty
+  | otherwise = choose bestStrategy
   where
-    strategies = allStrategies partial
+    availableStrategies = strategies partial
     -- We choose the strategy with the least number of candidates
-    bestStrategy = minimumBy compareStrategies strategies
+    bestStrategy = minimumBy (compare `on` Set.size) availableStrategies
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
