@@ -429,9 +429,10 @@ library
         Attempt2
         Attempt3
         Attempt4
-        Attempt5
+        Attempt5Heap
         Attempt5Set
         Problem
+        SMT
     other-modules:
         Paths_linkedin_queens
     autogen-modules:
@@ -443,7 +444,8 @@ library
         containers,
         directory,
         heaps >=0.4.1,
-        logict
+        logict,
+        sbv >=11.7
     hs-source-dirs:
         src
     default-extensions:
@@ -480,7 +482,8 @@ executable linkedin-queens
         directory,
         heaps >=0.4.1,
         linkedin-queens,
-        logict
+        logict,
+        sbv >=11.7
     hs-source-dirs:
         app
     default-extensions:
@@ -542,5 +545,6 @@ benchmark linkedin-queens-bench
         heaps >=0.4.1,
         linkedin-queens,
         logict,
+        sbv >=11.7,
         tasty-bench
     default-language: Haskell2010

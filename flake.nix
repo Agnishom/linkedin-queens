@@ -17,7 +17,10 @@
     {
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
-          packages = with pkgs; [ cabal-install ghc haskell-language-server hpack ];
+          shellHook = ''
+            export SBV_Z3=${pkgs.z3}/bin/z3
+          '';
+          packages = with pkgs; [ cabal-install ghc haskell-language-server hpack z3 ];
         };
       });
     };

@@ -60,6 +60,7 @@ dependencies:
   - array
   - logict
   - directory
+  - sbv >= 11.7
 
 # Defines the library component of the package.
 library:

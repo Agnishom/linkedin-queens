@@ -10,6 +10,7 @@ import qualified Attempt5Set
 import Control.Monad.Logic
 import Paths_linkedin_queens
 import Problem
+import qualified SMT
 import System.Directory (listDirectory)
 import Test.Tasty.Bench
 
@@ -34,28 +35,31 @@ solvers =
     ("Attempt2", Attempt2.solution),
     ("Attempt3", Attempt3.solution),
     ("Attempt4", Attempt4.solution),
-    ("Attempt5Heap", Attempt5.solution),
+    ("Attempt5Heap", Attempt5Heap.solution),
     ("Attempt5Set", Attempt5Set.solution)
   ]
 
 -- Generate benchmarks for each (solver, problem) pair
 main :: IO ()
 main = do
-  -- by inspection, we know that the problems are of size 7, 8, 9, 10 and 11
-  let diskBmarks = diskBenchmarks [7, 8, 9, 10, 11]
   defaultMain $
     -- Static in-memory benchmarks
     [ bgroup
         problemName
         [ bench solverName $
             nf (observe . solver) problem
-          | (solverName, solver) <- (("Attempt0", Attempt0.solution) : solvers)
+          | (solverName, solver) <- ("Attempt0", Attempt0.solution) : solvers
         ]
       | (problemName, problem) <- problems
     ]
       ++
       -- One bgroup for all disk benchmarks
-      [ bgroup "disk-problems" diskBmarks
+      -- by inspection, we know that the problems are of size 7, 8, 9, 10 and 11
+      [ bgroup "disk-problems" $ diskBenchmarks [7, 8, 9, 10, 11]
+      ]
+      ++
+      -- One bgroup for all SMT benchmarks
+      [ bgroup "SMT" (smtBenchmarks [7, 8, 9, 10, 11])
       ]
 
 getProblems :: IO [Problem]
@@ -75,7 +79,7 @@ solveProblemsOfSize n solver = do
   map (observe . solver) <$> getProblemsBySize n
 
 diskBenchmarks :: [Int] -> [Benchmark]
-diskBenchmarks sizes = concatMap perSizeBenchmarks sizes
+diskBenchmarks = concatMap perSizeBenchmarks
   where
     perSizeBenchmarks n =
       map
@@ -84,3 +88,16 @@ diskBenchmarks sizes = concatMap perSizeBenchmarks sizes
               nfIO (solveProblemsOfSize n solver)
         )
         solvers
+
+smtSolve :: Int -> IO [Solution]
+smtSolve n =
+  getProblemsBySize n
+    >>= mapM SMT.solution
+
+smtBenchmarks :: [Int] -> [Benchmark]
+smtBenchmarks = concatMap perSizeBenchmarks
+  where
+    perSizeBenchmarks n =
+      [ bench ("SMT-size-" ++ show n) $
+          nfIO (smtSolve n)
+      ]
