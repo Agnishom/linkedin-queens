@@ -22,132 +22,156 @@
 ```
 All
   problem1
-    Attempt0:        OK
-      17.6 ms ± 968 μs
-    Attempt1:        OK
-      19.1 μs ± 1.1 μs
-    Attempt2:        OK
-      21.7 μs ± 1.8 μs
-    Attempt3:        OK
-      20.0 μs ± 1.7 μs
-    Attempt4:        OK
-      20.5 μs ± 1.8 μs
-    Attempt5:        OK
-      22.3 μs ± 1.9 μs
+    Attempt0:             OK
+      17.0 ms ± 1.2 ms
+    Attempt1:             OK
+      18.3 μs ± 911 ns
+    Attempt2:             OK
+      21.0 μs ± 842 ns
+    Attempt3:             OK
+      19.3 μs ± 1.1 μs
+    Attempt4:             OK
+      19.8 μs ± 1.7 μs
+    Attempt5Heap:         OK
+      21.8 μs ± 2.2 μs
+    Attempt5Set:          OK
+      11.5 μs ± 827 ns
   problem2
-    Attempt0:        TIMEOUT
-      Timed out after 60
+    Attempt0:             TIMEOUT
+      Timed out after 20
       Use -p '/problem2.Attempt0/' to rerun this test only.
-    Attempt1:        OK
-      17.057 s ±  35 ms
-    Attempt2:        OK
-      193  ms ±  15 ms
-    Attempt3:        OK
-      172  ms ± 7.3 ms
-    Attempt4:        OK
-      65.5 μs ± 4.2 μs
-    Attempt5:        OK
-      101  μs ± 6.6 μs
+    Attempt1:             TIMEOUT
+      Timed out after 20
+      Use -p '/problem2.Attempt1/' to rerun this test only.
+    Attempt2:             OK
+      188  ms ±  14 ms
+    Attempt3:             OK
+      166  ms ±  15 ms
+    Attempt4:             OK
+      64.7 μs ± 5.1 μs
+    Attempt5Heap:         OK
+      99.3 μs ± 6.7 μs
+    Attempt5Set:          OK
+      51.6 μs ± 3.4 μs
   problem3
-    Attempt0:        OK
-      2.131 s ±  35 ms
-    Attempt1:        OK
-      16.8 μs ± 958 ns
-    Attempt2:        OK
-      32.8 μs ± 1.8 μs
-    Attempt3:        OK
-      27.7 μs ± 1.8 μs
-    Attempt4:        OK
-      31.3 μs ± 1.8 μs
-    Attempt5:        OK
-      43.6 μs ± 3.6 μs
+    Attempt0:             OK
+      2.090 s ±  29 ms
+    Attempt1:             OK
+      16.7 μs ± 1.0 μs
+    Attempt2:             OK
+      32.0 μs ± 2.0 μs
+    Attempt3:             OK
+      27.2 μs ± 2.0 μs
+    Attempt4:             OK
+      31.0 μs ± 1.9 μs
+    Attempt5Heap:         OK
+      43.0 μs ± 3.9 μs
+    Attempt5Set:          OK
+      20.0 μs ± 1.7 μs
   problem4
-    Attempt0:        TIMEOUT
-      Timed out after 60
+    Attempt0:             TIMEOUT
+      Timed out after 20
       Use -p '/problem4.Attempt0/' to rerun this test only.
-    Attempt1:        OK
-      10.9 ms ± 870 μs
-    Attempt2:        OK
-      817  μs ±  56 μs
-    Attempt3:        OK
-      768  μs ±  55 μs
-    Attempt4:        OK
-      44.6 μs ± 3.3 μs
-    Attempt5:        OK
-      66.5 μs ± 4.9 μs
+    Attempt1:             OK
+      10.8 ms ± 904 μs
+    Attempt2:             OK
+      809  μs ±  56 μs
+    Attempt3:             OK
+      761  μs ±  57 μs
+    Attempt4:             OK
+      44.1 μs ± 3.3 μs
+    Attempt5Heap:         OK
+      66.1 μs ± 3.9 μs
+    Attempt5Set:          OK
+      30.0 μs ± 1.7 μs
   problem5
-    Attempt0:        TIMEOUT
-      Timed out after 60
+    Attempt0:             TIMEOUT
+      Timed out after 20
       Use -p '/problem5.Attempt0/' to rerun this test only.
-    Attempt1:        OK
-      4.620 s ±  93 ms
-    Attempt2:        OK
-      118  ms ± 7.4 ms
-    Attempt3:        OK
-      105  ms ± 7.3 ms
-    Attempt4:        OK
-      396  μs ±  27 μs
-    Attempt5:        OK
-      616  μs ±  53 μs
+    Attempt1:             OK
+      4.570 s ±  81 ms
+    Attempt2:             OK
+      116  ms ± 7.0 ms
+    Attempt3:             OK
+      103  ms ± 7.2 ms
+    Attempt4:             OK
+      391  μs ±  28 μs
+    Attempt5Heap:         OK
+      612  μs ±  58 μs
+    Attempt5Set:          OK
+      306  μs ±  30 μs
   disk-problems
-    Attempt1-size-7:  OK
-      12.944 s ± 210 ms
-    Attempt2-size-7:  OK
-      247  ms ±  16 ms
-    Attempt3-size-7:  OK
-      228  ms ± 6.7 ms
-    Attempt4-size-7:  OK
-      9.12 ms ± 270 μs
-    Attempt5-size-7:  OK
-      10.3 ms ± 884 μs
-    Attempt1-size-8:  TIMEOUT
-      Timed out after 60
+    Attempt1-size-7:      TIMEOUT
+      Timed out after 20
+      Use -p '/Attempt1-size-7/' to rerun this test only.
+    Attempt2-size-7:      OK
+      244  ms ±  14 ms
+    Attempt3-size-7:      OK
+      226  ms ±  15 ms
+    Attempt4-size-7:      OK
+      8.85 ms ± 495 μs
+    Attempt5Heap-size-7:  OK
+      10.4 ms ± 981 μs
+    Attempt5Set-size-7:   OK
+      8.05 ms ± 285 μs
+    Attempt1-size-8:      TIMEOUT
+      Timed out after 20
       Use -p '/Attempt1-size-8/' to rerun this test only.
-    Attempt2-size-8:  OK
-      11.761 s ±  62 ms
-    Attempt3-size-8:  OK
-      10.457 s ±  46 ms
-    Attempt4-size-8:  OK
-      28.6 ms ± 2.0 ms
-    Attempt5-size-8:  OK
-      39.0 ms ± 3.6 ms
-    Attempt1-size-9:  TIMEOUT
-      Timed out after 60
+    Attempt2-size-8:      TIMEOUT
+      Timed out after 20
+      Use -p '/Attempt2-size-8/' to rerun this test only.
+    Attempt3-size-8:      TIMEOUT
+      Timed out after 20
+      Use -p '/Attempt3-size-8/' to rerun this test only.
+    Attempt4-size-8:      OK
+      28.6 ms ± 1.9 ms
+    Attempt5Heap-size-8:  OK
+      38.7 ms ± 3.5 ms
+    Attempt5Set-size-8:   OK
+      24.3 ms ± 2.0 ms
+    Attempt1-size-9:      TIMEOUT
+      Timed out after 20
       Use -p '/Attempt1-size-9/' to rerun this test only.
-    Attempt2-size-9:  TIMEOUT
-      Timed out after 60
+    Attempt2-size-9:      TIMEOUT
+      Timed out after 20
       Use -p '/Attempt2-size-9/' to rerun this test only.
-    Attempt3-size-9:  TIMEOUT
-      Timed out after 60
+    Attempt3-size-9:      TIMEOUT
+      Timed out after 20
       Use -p '/Attempt3-size-9/' to rerun this test only.
-    Attempt4-size-9:  OK
-      42.5 ms ± 4.0 ms
-    Attempt5-size-9:  OK
-      61.5 ms ± 3.7 ms
-    Attempt1-size-10: TIMEOUT
-      Timed out after 60
+    Attempt4-size-9:      OK
+      42.4 ms ± 3.9 ms
+    Attempt5Heap-size-9:  OK
+      61.3 ms ± 3.4 ms
+    Attempt5Set-size-9:   OK
+      37.7 ms ± 3.4 ms
+    Attempt1-size-10:     TIMEOUT
+      Timed out after 20
       Use -p '/Attempt1-size-10/' to rerun this test only.
-    Attempt2-size-10: TIMEOUT
-      Timed out after 60
+    Attempt2-size-10:     TIMEOUT
+      Timed out after 20
       Use -p '/Attempt2-size-10/' to rerun this test only.
-    Attempt3-size-10: TIMEOUT
-      Timed out after 60
+    Attempt3-size-10:     TIMEOUT
+      Timed out after 20
       Use -p '/Attempt3-size-10/' to rerun this test only.
-    Attempt4-size-10: OK
-      27.8 ms ± 2.2 ms
-    Attempt5-size-10: OK
-      39.9 ms ± 3.5 ms
-    Attempt1-size-11: TIMEOUT
-      Timed out after 60
+    Attempt4-size-10:     OK
+      27.4 ms ± 1.8 ms
+    Attempt5Heap-size-10: OK
+      39.8 ms ± 3.6 ms
+    Attempt5Set-size-10:  OK
+      25.4 ms ± 1.9 ms
+    Attempt1-size-11:     TIMEOUT
+      Timed out after 20
       Use -p '/Attempt1-size-11/' to rerun this test only.
-    Attempt2-size-11: TIMEOUT
-      Timed out after 60
+    Attempt2-size-11:     TIMEOUT
+      Timed out after 20
       Use -p '/Attempt2-size-11/' to rerun this test only.
-    Attempt3-size-11: TIMEOUT
-      Timed out after 60
+    Attempt3-size-11:     TIMEOUT
+      Timed out after 20
       Use -p '/Attempt3-size-11/' to rerun this test only.
-    Attempt4-size-11: OK
-      11.6 ms ± 861 μs
-    Attempt5-size-11: OK
-      15.3 ms ± 1.0 ms
+    Attempt4-size-11:     OK
+      11.6 ms ± 755 μs
+    Attempt5Heap-size-11: OK
+      18.1 ms ± 1.1 ms
+    Attempt5Set-size-11:  OK
+      11.0 ms ± 874 μs
 ```

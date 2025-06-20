@@ -1,6 +1,6 @@
 module Main where
 
-import Attempt5
+import Attempt5Set
 import Control.Monad.Logic
 import Problem
 

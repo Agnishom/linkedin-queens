@@ -1,4 +1,4 @@
-module Attempt5
+module Attempt5Heap
   ( solution,
   )
 where

@@ -430,6 +430,7 @@ library
         Attempt3
         Attempt4
         Attempt5
+        Attempt5Set
         Problem
     other-modules:
         Paths_linkedin_queens

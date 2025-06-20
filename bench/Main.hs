@@ -5,7 +5,8 @@ import qualified Attempt1
 import qualified Attempt2
 import qualified Attempt3
 import qualified Attempt4
-import qualified Attempt5
+import qualified Attempt5Heap
+import qualified Attempt5Set
 import Control.Monad.Logic
 import Paths_linkedin_queens
 import Problem
@@ -33,7 +34,8 @@ solvers =
     ("Attempt2", Attempt2.solution),
     ("Attempt3", Attempt3.solution),
     ("Attempt4", Attempt4.solution),
-    ("Attempt5", Attempt5.solution)
+    ("Attempt5Heap", Attempt5.solution),
+    ("Attempt5Set", Attempt5Set.solution)
   ]
 
 -- Generate benchmarks for each (solver, problem) pair
