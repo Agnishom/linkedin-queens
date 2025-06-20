@@ -20,11 +20,16 @@ data Attempt = HasQueen | Eliminated
 data Remaining a = Satisfied | AvailableCandidates (Set a)
   deriving (Show, Eq)
 
-remove :: (Ord a) => a -> Remaining a -> Remaining a
-remove x (AvailableCandidates s)
-  | Set.size s > 0 = AvailableCandidates (Set.delete x s)
-  | otherwise = error "Cannot remove from an empty set"
-remove _ Satisfied = Satisfied
+remove :: (MonadLogic m, Ord k, Ord a) => k -> a -> Map k (Remaining a) -> m (Map k (Remaining a))
+remove key a candidates = do
+  case Map.lookup key candidates of
+    Just (AvailableCandidates s) -> do
+      -- Note: the condition is (|s| > 1)
+      -- we do not want to be left with 0 candidates
+      guard (Set.size s > 1)
+      let newSet = Set.delete a s
+      pure $ Map.insert key (AvailableCandidates newSet) candidates
+    _ -> pure candidates
 
 -- | Data structure representing our progress in solving the problem
 data Partial = Partial
@@ -45,26 +50,27 @@ data Partial = Partial
 
 -- | Mark a cell in the board as eliminated, and update the candidates accordingly
 -- | If the cell already has a queen, do nothing
-eliminate :: (Row, Column) -> Problem -> Partial -> Partial
+eliminate :: (MonadLogic m) => (Row, Column) -> Problem -> Partial -> m Partial
 eliminate (x, y) problem partial
-  | isJust currentCellValue = partial
-  | otherwise =
-      Partial
-        { attempts = newAttempts,
-          rowCandidates = newRowCandidates,
-          columnCandidates = newColumnCandidates,
-          colorCandidates = newColorCandidates
-        }
+  | isJust currentCellValue = pure partial
+  | otherwise = do
+      let newAttempts = Map.insert (x, y) Eliminated partial.attempts
+      newRowCandidates <- remove x y partial.rowCandidates
+      newColumnCandidates <- remove y x partial.columnCandidates
+      newColorCandidates <- remove color (x, y) partial.colorCandidates
+      pure $
+        Partial
+          { attempts = newAttempts,
+            rowCandidates = newRowCandidates,
+            columnCandidates = newColumnCandidates,
+            colorCandidates = newColorCandidates
+          }
   where
     color = problem ! (x, y)
     currentCellValue = Map.lookup (x, y) partial.attempts
-    newAttempts = Map.insert (x, y) Eliminated partial.attempts
-    newRowCandidates = Map.adjust (remove y) x partial.rowCandidates
-    newColumnCandidates = Map.adjust (remove x) y partial.columnCandidates
-    newColorCandidates = Map.adjust (remove (x, y)) color partial.colorCandidates
 
-elimCorners :: (Row, Column) -> Problem -> Partial -> Partial
-elimCorners (x, y) problem = foldr (.) id elimFns
+elimCorners :: (MonadLogic m) => (Row, Column) -> Problem -> Partial -> m Partial
+elimCorners (x, y) problem = foldr (>=>) pure elimFns
   where
     elimFns =
       [ eliminate (x', y') problem
@@ -76,51 +82,44 @@ elimCorners (x, y) problem = foldr (.) id elimFns
           y' < size problem
       ]
 
-elimColumn :: Column -> Problem -> Partial -> Partial
-elimColumn j problem partial = foldr elimCell partial [0 .. size problem - 1]
+elimColumn :: (MonadLogic m) => Column -> Problem -> Partial -> m Partial
+elimColumn j problem partial = foldM (flip elimCell) partial [0 .. size problem - 1]
   where
     elimCell i = eliminate (i, j) problem
 
-elimRow :: Row -> Problem -> Partial -> Partial
-elimRow i problem partial = foldr elimCell partial [0 .. size problem - 1]
+elimRow :: (MonadLogic m) => Row -> Problem -> Partial -> m Partial
+elimRow i problem partial = foldM (flip elimCell) partial [0 .. size problem - 1]
   where
     elimCell j = eliminate (i, j) problem
 
-elimColor :: Color -> Problem -> Partial -> Partial
-elimColor color problem = foldr (.) id elimFns
+elimColor :: (MonadLogic m) => Color -> Problem -> Partial -> m Partial
+elimColor color problem = foldr (>=>) pure elimFns
   where
     elimFns = [eliminate (x, y) problem | x <- [0 .. size problem - 1], y <- [0 .. size problem - 1], problem ! (x, y) == color]
 
 -- | Place a queen in the given cell, and update the partial progress
 -- | This eiliminates a number of other candidates sharing the same
 -- | row, column, or color, and those which are in the corners of the cell
-placeQueen :: Problem -> (Row, Column) -> Partial -> Partial
-placeQueen problem (x, y) partial =
-  elimCorners (x, y) problem
-    . elimColumn y problem
-    . elimRow x problem
-    . elimColor color problem
-    $ Partial
-      { attempts = newAttempts,
-        rowCandidates = newRowCandidates,
-        columnCandidates = newColumnCandidates,
-        colorCandidates = newColorCandidates
-      }
+placeQueen :: (MonadLogic m) => Problem -> (Row, Column) -> Partial -> m Partial
+placeQueen problem (x, y) partial = elimAll newPartial
   where
     newAttempts = Map.insert (x, y) HasQueen partial.attempts
     newRowCandidates = Map.insert x Satisfied partial.rowCandidates
     newColumnCandidates = Map.insert y Satisfied partial.columnCandidates
-    newColorCandidates = Map.insert color Satisfied partial.colorCandidates
     color = problem ! (x, y)
-
-outOfCandidates :: Partial -> Bool
-outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfColorCandidates
-  where
-    outOfRowCandidates = any isOut (Map.elems partial.rowCandidates)
-    outOfColumnCandidates = any isOut (Map.elems partial.columnCandidates)
-    outOfColorCandidates = any isOut (Map.elems partial.colorCandidates)
-    isOut (AvailableCandidates s) = Set.size s == 0
-    isOut _ = False
+    newColorCandidates = Map.insert color Satisfied partial.colorCandidates
+    newPartial =
+      Partial
+        { attempts = newAttempts,
+          rowCandidates = newRowCandidates,
+          columnCandidates = newColumnCandidates,
+          colorCandidates = newColorCandidates
+        }
+    elimAll =
+      elimCorners (x, y) problem
+        >=> elimColumn y problem
+        >=> elimRow x problem
+        >=> elimColor color problem
 
 -- | A strategy is a set of (Row, Column) candidates such that at least one
 -- | of them must be included in the completion of the solution
@@ -163,12 +162,11 @@ candidate partial
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   -- if there are no candidates left, we need to abort this branch
-  guard (not (outOfCandidates partial))
   ifte -- if-then-else
     (candidate partial) -- choose a candidate
     ( \(x, y) -> do
         -- place the queen in the chosen cell
-        let newPartial = placeQueen problem (x, y) partial
+        newPartial <- placeQueen problem (x, y) partial
         -- continue to place the rest of the queens
         solve problem newPartial
     )

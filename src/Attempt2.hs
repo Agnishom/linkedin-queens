@@ -17,12 +17,6 @@ data Attempt = HasQueen | Eliminated
 data Remaining = Satisfied | AvailableCandidates Int
   deriving (Show, Eq)
 
-decrease :: Remaining -> Remaining
-decrease (AvailableCandidates n)
-  | n > 0 = AvailableCandidates (n - 1)
-  | otherwise = error "Cannot decrease Remaining below 0"
-decrease Satisfied = Satisfied
-
 data Partial = Partial
   { attempts :: Map (Row, Column) Attempt,
     rowCandidates :: Map Row Remaining,
@@ -31,26 +25,37 @@ data Partial = Partial
   }
   deriving (Show, Eq)
 
-eliminate :: (Row, Column) -> Problem -> Partial -> Partial
+decrease :: (MonadLogic m, Ord k) => k -> Map k Remaining -> m (Map k Remaining)
+decrease key candidates =
+  case Map.lookup key candidates of
+    Just (AvailableCandidates n) -> do
+      -- Note: the condition is (n > 1)
+      -- we do not want to be left with 0 candidates
+      guard (n > 1)
+      pure $ Map.insert key (AvailableCandidates (n - 1)) candidates
+    _ -> pure candidates
+
+eliminate :: (MonadLogic m) => (Row, Column) -> Problem -> Partial -> m Partial
 eliminate (x, y) problem partial
-  | isJust currentCellValue = partial
-  | otherwise =
-      Partial
-        { attempts = newAttempts,
-          rowCandidates = newRowCandidates,
-          columnCandidates = newColumnCandidates,
-          colorCandidates = newColorCandidates
-        }
+  | isJust currentCellValue = pure partial
+  | otherwise = do
+      let newAttempts = Map.insert (x, y) Eliminated partial.attempts
+      newRowCandidates <- decrease x partial.rowCandidates
+      newColumnCandidates <- decrease y partial.columnCandidates
+      newColorCandidates <- decrease color partial.colorCandidates
+      pure $
+        Partial
+          { attempts = newAttempts,
+            rowCandidates = newRowCandidates,
+            columnCandidates = newColumnCandidates,
+            colorCandidates = newColorCandidates
+          }
   where
     color = problem ! (x, y)
     currentCellValue = Map.lookup (x, y) partial.attempts
-    newAttempts = Map.insert (x, y) Eliminated partial.attempts
-    newRowCandidates = Map.adjust decrease x partial.rowCandidates
-    newColumnCandidates = Map.adjust decrease y partial.columnCandidates
-    newColorCandidates = Map.adjust decrease color partial.colorCandidates
 
-elimCorners :: (Row, Column) -> Problem -> Partial -> Partial
-elimCorners (x, y) problem = foldr (.) id elimFns
+elimCorners :: (MonadLogic m) => (Row, Column) -> Problem -> Partial -> m Partial
+elimCorners (x, y) problem = foldr (>=>) pure elimFns
   where
     elimFns =
       [ eliminate (x', y') problem
@@ -62,39 +67,41 @@ elimCorners (x, y) problem = foldr (.) id elimFns
           y' < size problem
       ]
 
-elimColumn :: Column -> Problem -> Partial -> Partial
-elimColumn j problem partial = foldr elimCell partial [0 .. size problem - 1]
+elimColumn :: (MonadLogic m) => Column -> Problem -> Partial -> m Partial
+elimColumn j problem partial = foldM (flip elimCell) partial [0 .. size problem - 1]
   where
     elimCell i = eliminate (i, j) problem
 
-elimRow :: Row -> Problem -> Partial -> Partial
-elimRow i problem partial = foldr elimCell partial [0 .. size problem - 1]
+elimRow :: (MonadLogic m) => Row -> Problem -> Partial -> m Partial
+elimRow i problem partial = foldM (flip elimCell) partial [0 .. size problem - 1]
   where
     elimCell j = eliminate (i, j) problem
 
-elimColor :: Color -> Problem -> Partial -> Partial
-elimColor color problem = foldr (.) id elimFns
+elimColor :: (MonadLogic m) => Color -> Problem -> Partial -> m Partial
+elimColor color problem = foldr (>=>) pure elimFns
   where
     elimFns = [eliminate (x, y) problem | x <- [0 .. size problem - 1], y <- [0 .. size problem - 1], problem ! (x, y) == color]
 
-placeQueen :: Problem -> (Row, Column) -> Partial -> Partial
-placeQueen problem (x, y) partial =
-  elimCorners (x, y) problem
-    . elimColumn y problem
-    . elimRow x problem
-    . elimColor color problem
-    $ Partial
-      { attempts = newAttempts,
-        rowCandidates = newRowCandidates,
-        columnCandidates = newColumnCandidates,
-        colorCandidates = newColorCandidates
-      }
+placeQueen :: (MonadLogic m) => Problem -> (Row, Column) -> Partial -> m Partial
+placeQueen problem (x, y) partial = elimAll newPartial
   where
     newAttempts = Map.insert (x, y) HasQueen partial.attempts
     newRowCandidates = Map.insert x Satisfied partial.rowCandidates
     newColumnCandidates = Map.insert y Satisfied partial.columnCandidates
-    newColorCandidates = Map.insert color Satisfied partial.colorCandidates
     color = problem ! (x, y)
+    newColorCandidates = Map.insert color Satisfied partial.colorCandidates
+    newPartial =
+      Partial
+        { attempts = newAttempts,
+          rowCandidates = newRowCandidates,
+          columnCandidates = newColumnCandidates,
+          colorCandidates = newColorCandidates
+        }
+    elimAll =
+      elimCorners (x, y) problem
+        >=> elimColumn y problem
+        >=> elimRow x problem
+        >=> elimColor color problem
 
 choose :: (MonadLogic m, Foldable t) => t a -> m a
 choose = foldr ((<|>) . pure) empty
@@ -107,23 +114,12 @@ candidate problem partial = do
   guard (isNothing (Map.lookup (x, y) partial.attempts))
   pure (x, y)
 
-outOfCandidates :: Partial -> Bool
-outOfCandidates partial = outOfRowCandidates || outOfColumnCandidates || outOfColorCandidates
-  where
-    outOfRowCandidates = any isZero (Map.elems partial.rowCandidates)
-    outOfColumnCandidates = any isZero (Map.elems partial.columnCandidates)
-    outOfColorCandidates = any isZero (Map.elems partial.colorCandidates)
-    isZero (AvailableCandidates 0) = True
-    isZero _ = False
-
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
-  -- if we are out of candidates, we abort this branch
-  guard (not $ outOfCandidates partial)
   ifte
     (candidate problem partial)
     ( \(x, y) -> do
-        let newPartial = placeQueen problem (x, y) partial
+        newPartial <- placeQueen problem (x, y) partial
         solve problem newPartial
     )
     (pure partial)
