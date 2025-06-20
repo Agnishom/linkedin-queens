@@ -3,10 +3,10 @@
 | Problem      | Attempt0 | Attempt1 | Attempt2 | Attempt3 | Attempt4 | Attempt5 |
 | ------------ | -------- | -------- | -------- | -------- | -------- | -------- |
 | **Problem 1** | 17.6 ms  | 19.1 μs  | 21.7 μs  | 20.0 μs  | 20.5 μs  | 22.3 μs  |
-| **Problem 2** | > 60s  | 17.057 s | 193 ms   | 172 ms   | 65.5 μs  | 101 μs   |
+| **Problem 2** | -   | 17.057 s | 193 ms   | 172 ms   | 65.5 μs  | 101 μs   |
 | **Problem 3** | 2.131 s  | 16.8 μs  | 32.8 μs  | 27.7 μs  | 31.3 μs  | 43.6 μs  |
-| **Problem 4** | > 60s  | 10.9 ms  | 817 μs   | 768 μs   | 44.6 μs  | 66.5 μs  |
-| **Problem 5** | > 60s  | 4.620 s  | 118 ms   | 105 ms   | 396 μs   | 616 μs   |
+| **Problem 4** | -   | 10.9 ms  | 817 μs   | 768 μs   | 44.6 μs  | 66.5 μs  |
+| **Problem 5** | -   | 4.620 s  | 118 ms   | 105 ms   | 396 μs   | 616 μs   |
 
 ## Average Time for Solving Official Levels
 
