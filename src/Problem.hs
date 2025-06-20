@@ -11,11 +11,13 @@ module Problem
     problem3,
     problem4,
     problem5,
+    parse,
   )
 where
 
 import Data.Array (Array, (!))
 import qualified Data.Array as Array
+import Data.Char (ord)
 
 type Color = Int
 
@@ -100,3 +102,9 @@ problem5 =
       [7, 7, 1, 5, 5, 1, 6, 6],
       [7, 7, 1, 5, 1, 1, 1, 6]
     ]
+
+parse :: String -> Problem
+parse input = mkProblem matrix
+  where
+    matrix = (map . map) f $ lines input
+    f ch = ord ch - ord 'A'

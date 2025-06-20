@@ -30,25 +30,10 @@ extra-source-files:
 ghc-options:
 - -Wall
 
-# Defines the library component of the package.
-library:
-  source-dirs: src
-  exposed-modules:
-  - Problem
-  - Attempt5
-  other-modules:
-  - Attempt0
-  - Attempt1
-  - Attempt2
-  - Attempt3
-  - Attempt4
-  dependencies:
-  - base >= 4.19 && < 4.20
-  - containers
-  - heaps >= 0.4.1
-  - array
-  - logict
-  default-extensions:
+data-files:
+  - levels/*
+
+default-extensions:
   - BlockArguments
   - DeriveAnyClass
   - DerivingStrategies
@@ -67,6 +52,18 @@ library:
   - QuantifiedConstraints
   - TupleSections
   - ViewPatterns
+
+dependencies:
+  - base >= 4.19 && < 4.20
+  - containers
+  - heaps >= 0.4.1
+  - array
+  - logict
+  - directory
+
+# Defines the library component of the package.
+library:
+  source-dirs: src
   language: Haskell2010
 
 # Defines the executable component of the package.
@@ -76,7 +73,13 @@ executables:
     source-dirs:         app
     dependencies:
     - base >= 4.19 && < 4.20
-    - logict
     - linkedin-queens  # Dependency on the local library
     language:    Haskell2010
 
+benchmarks:
+  linkedin-queens-bench:
+    main: Main.hs
+    source-dirs: bench
+    dependencies:
+      - tasty-bench
+      - linkedin-queens
