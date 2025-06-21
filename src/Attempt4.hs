@@ -122,7 +122,7 @@ placeQueen problem (x, y) partial = elimAll newPartial
         >=> elimRow x problem
         >=> elimColor color problem
 
--- | A strategy is a set of (Row, Column) candidates such that at least one
+-- | A strategy is a set of (Row, Column) candidates such that at exactly one
 -- | of them must be included in the completion of the solution
 type Strategy = Set (Row, Column)
 
