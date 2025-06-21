@@ -61,6 +61,7 @@ solve problem partial =
       ifte -- if-then-else
         (candidate problem partial)
         ( \(x, y) -> do
+            -- place a queen on the candidate cell
             let newBoard = Set.insert (x, y) partial
             solve problem newBoard
         )
