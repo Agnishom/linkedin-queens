@@ -431,6 +431,7 @@ library
         Attempt4
         Attempt5Heap
         Attempt5Set
+        Attempt6
         Problem
         SMT
     other-modules:
