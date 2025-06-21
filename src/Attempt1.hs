@@ -68,6 +68,7 @@ candidate problem partial = do
   let n = size problem
   x <- choose [0 .. n - 1]
   y <- choose [0 .. n - 1]
+  -- only pick unmarked cells
   guard (isNothing (Map.lookup (x, y) partial))
   pure (x, y)
 
