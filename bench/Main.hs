@@ -63,6 +63,13 @@ main = do
       -- One bgroup for all SMT benchmarks
       [ bgroup "SMT" (smtBenchmarks [7, 8, 9, 10, 11])
       ]
+      ++
+      [ bench "problem1-smt" $ nfIO (SMT.solution problem1),
+        bench "problem2-smt" $ nfIO (SMT.solution problem2),
+        bench "problem3-smt" $ nfIO (SMT.solution problem3),
+        bench "problem4-smt" $ nfIO (SMT.solution problem4),
+        bench "problem5-smt" $ nfIO (SMT.solution problem5)
+      ]
 
 getProblems :: IO [Problem]
 getProblems = do

@@ -1,12 +1,12 @@
 ## Time for a Selection of Problems
 
-| Problem      | Attempt0 | Attempt1 | Attempt2 | Attempt3 | Attempt4 | Attempt5 |
-| ------------ | -------- | -------- | -------- | -------- | -------- | -------- |
-| **Problem 1** | 17.6 ms  | 19.1 μs  | 21.7 μs  | 20.0 μs  | 20.5 μs  | 22.3 μs  |
-| **Problem 2** | -   | 17.057 s | 193 ms   | 172 ms   | 65.5 μs  | 101 μs   |
-| **Problem 3** | 2.131 s  | 16.8 μs  | 32.8 μs  | 27.7 μs  | 31.3 μs  | 43.6 μs  |
-| **Problem 4** | -   | 10.9 ms  | 817 μs   | 768 μs   | 44.6 μs  | 66.5 μs  |
-| **Problem 5** | -   | 4.620 s  | 118 ms   | 105 ms   | 396 μs   | 616 μs   |
+| Problem       | Attempt 0 | Attempt 1 | Attempt 2  | Attempt 3 | Attempt 4 | Attempt 5 (Heap) | Attempt 5 (Set)  | Attempt 6        | SMT Solver (Z3) |
+| ------------- | --------- | --------- | ---------- | --------- | --------- | ---------------- | ---------------- | ---------------- | --------------- |
+| **Problem 1** | 17.6 ms   | 19.1 μs   | 21.7 μs    | 20.0 μs   | 20.5 μs   | 22.3 μs          | 11.0 μs          | 11.6 μs          | 5.18 ms         |
+| **Problem 2** | -         | 17.057 s  | 193 ms     | 172 ms    | 65.5 μs   | 101 μs           | 51.4 μs          | 51.7 μs          | 13.4 ms         |
+| **Problem 3** | 2.131 s   | 16.8 μs   | 32.8 μs    | 27.7 μs   | 31.3 μs   | 43.6 μs          | 19.9 μs          | 18.5 μs          | 5.20 ms         |
+| **Problem 4** | -         | 10.9 ms   | 817 μs     | 768 μs    | 44.6 μs   | 66.5 μs          | 30.2 μs          | 28.9 μs          | 8.67 ms         |
+| **Problem 5** | -         | 4.620 s   | 118 ms     | 105 ms    | 396 μs    | 616 μs           | 309  μs          | 305  μs          | 29.8 ms         |
 
 ## Average Time for Solving Official Levels
 
