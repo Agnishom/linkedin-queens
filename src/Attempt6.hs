@@ -6,6 +6,8 @@ where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Logic
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Problem
@@ -22,44 +24,28 @@ instance Ord Strategy where
 
 data Partial = Partial
   { queens :: Set (Row, Column),
-    strategies :: Set Strategy
+    strategies :: Set Strategy,
+    directlyAttacked :: Map (Row, Column) (Set (Row, Column))
   }
   deriving (Show, Eq)
-
-directlyAttacked :: (Row, Column) -> Problem -> Set (Row, Column)
-directlyAttacked (x, y) problem = Set.fromList $ corners ++ row ++ column ++ color
-  where
-    n = size problem
-    corners =
-      [ (x', y')
-        | x' <- [x - 1, x + 1],
-          x' >= 0,
-          x' < n,
-          y' <- [y - 1, y + 1],
-          y' >= 0,
-          y' < n
-      ]
-    row = [(x, j) | j <- [0 .. n - 1], j /= y]
-    column = [(i, y) | i <- [0 .. n - 1], i /= x]
-    color = [(i, j) | i <- [0 .. n - 1], j <- [0 .. n - 1], problem ! (i, j) == problem ! (x, y), (i, j) /= (x, y)]
 
 eliminateFromStrategy :: Set (Row, Column) -> Strategy -> Strategy
 eliminateFromStrategy attacked (Strategy s) = Strategy $ Set.difference s attacked
 
-placeQueen :: (MonadLogic m) => Problem -> (Row, Column) -> Partial -> m Partial
-placeQueen problem (x, y) partial = do
+placeQueen :: (MonadLogic m) => (Row, Column) -> Partial -> m Partial
+placeQueen (x, y) partial = do
   -- add a queen to the board
   let newQueens = Set.insert (x, y) partial.queens
   -- remove all the strategies which contains the new queen
   let strat1 = Set.filter (Set.notMember (x, y) . (.unStrategy)) partial.strategies
   -- from each strategy, remove the directly attacked candidates
-  let attacked = directlyAttacked (x, y) problem
+  let attacked = partial.directlyAttacked Map.! (x, y)
   let newStrategies = Set.map (eliminateFromStrategy attacked) strat1
   -- fail if this makes some strategies empty
   -- then we are out of candidates
   guard $ Set.notMember (Strategy Set.empty) newStrategies
   pure $
-    Partial
+    partial
       { queens = newQueens,
         strategies = newStrategies
       }
@@ -73,13 +59,13 @@ placeManyQueens problem positions partial = do
   -- remove all the strategies which contains any of the new queens
   let strat1 = Set.filter (Set.disjoint positions . (.unStrategy)) partial.strategies
   -- from each strategy, remove the directly attacked candidates
-  let attacked = Set.unions $ Set.map (`directlyAttacked` problem) positions
+  let attacked = Set.unions $ Set.map (\pos -> partial.directlyAttacked Map.! pos) positions
   let newStrategies = Set.map (eliminateFromStrategy attacked) strat1
   -- fail if this makes some strategies empty
   -- then we are out of candidates
   guard $ Set.notMember (Strategy Set.empty) newStrategies
   pure $
-    Partial
+    partial
       { queens = newQueens,
         strategies = newStrategies
       }
@@ -90,16 +76,14 @@ choose = foldr ((<|>) . pure) empty
 candidate :: (MonadLogic m) => Partial -> m (Row, Column)
 candidate partial = do
   -- choose the strategy with the smallest set of candidates
-  Strategy s <- case Set.lookupMin partial.strategies of
-    Just strat -> pure strat
-    Nothing -> empty -- no strategies left, fail
-    -- choose a queen from the strategy
+  Strategy s <- maybe empty pure (Set.lookupMin partial.strategies)
+  -- choose a queen from the strategy
   choose s
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   let super = superstrategy partial
-  if (not $ Set.null super)
+  if not $ Set.null super
     then do
       -- if there are super strategies, place all queens from them
       newPartial <- placeManyQueens problem super partial
@@ -109,7 +93,7 @@ solve problem partial = do
       ifte
         (candidate partial)
         ( \(x, y) -> do
-            newPartial <- placeQueen problem (x, y) partial
+            newPartial <- placeQueen (x, y) partial
             solve problem newPartial
         )
         (pure partial)
@@ -130,19 +114,34 @@ mkPartial :: Problem -> Partial
 mkPartial problem =
   Partial
     { queens = Set.empty,
-      strategies = Set.fromList $ map (Strategy . Set.fromList) (rowStrategies ++ columnStrategies ++ colorStrategies)
+      strategies = Set.fromList $ map (Strategy . Set.fromList) (rowStrategies ++ columnStrategies ++ colorStrategies),
+      directlyAttacked =
+        Map.fromList
+          [ ((r, c), directly (r, c))
+            | r <- [0 .. n - 1],
+              c <- [0 .. n - 1]
+          ]
     }
   where
     n = size problem
     rowStrategies = [[(r, c) | c <- [0 .. n - 1]] | r <- [0 .. n - 1]]
     columnStrategies = [[(r, c) | r <- [0 .. n - 1]] | c <- [0 .. n - 1]]
     colorStrategies = [[(i, j) | i <- [0 .. n - 1], j <- [0 .. n - 1], problem ! (i, j) == color] | color <- [0 .. n - 1]]
+    directly (x, y) =
+      Set.fromList $
+        [ (i, j)
+          | i <- [0 .. n - 1],
+            j <- [0 .. n - 1],
+            (i, j) /= (x, y),
+            isDirectlyAttacked problem (x, y) (i, j)
+        ]
 
 sound :: Problem -> Set (Row, Column) -> Bool
-sound problem queens = all (\p -> all (\q -> p == q || (not $ isDirectlyAttacked p q)) queens) queens
-  where
-    isDirectlyAttacked (i, j) (x, y) =
-      i == x -- same row
-        || j == y -- same column
-        || abs (i - x) == 1 && abs (j - y) == 1 -- diagonally touching
-        || problem ! (i, j) == problem ! (x, y) -- same color
+sound problem queens = all (\p -> all (\q -> p == q || not (isDirectlyAttacked problem p q)) queens) queens
+
+isDirectlyAttacked :: Problem -> (Row, Column) -> (Row, Column) -> Bool
+isDirectlyAttacked problem (i, j) (x, y) =
+  i == x -- same row
+    || j == y -- same column
+    || abs (i - x) == 1 && abs (j - y) == 1 -- diagonally touching
+    || problem ! (i, j) == problem ! (x, y) -- same color
