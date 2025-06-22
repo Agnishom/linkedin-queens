@@ -6,8 +6,7 @@ where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Logic
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Array (Array, array)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Problem
@@ -25,7 +24,7 @@ instance Ord Strategy where
 data Partial = Partial
   { queens :: Set (Row, Column),
     strategies :: Set Strategy,
-    directlyAttacked :: Map (Row, Column) (Set (Row, Column))
+    directlyAttacked :: Array (Row, Column) (Set (Row, Column))
   }
   deriving (Show, Eq)
 
@@ -39,7 +38,7 @@ placeQueen (x, y) partial = do
   -- remove all the strategies which contains the new queen
   let strat1 = Set.filter (Set.notMember (x, y) . (.unStrategy)) partial.strategies
   -- from each strategy, remove the directly attacked candidates
-  let attacked = partial.directlyAttacked Map.! (x, y)
+  let attacked = partial.directlyAttacked ! (x, y)
   let newStrategies = Set.map (eliminateFromStrategy attacked) strat1
   -- fail if this makes some strategies empty
   -- then we are out of candidates
@@ -59,7 +58,7 @@ placeManyQueens problem positions partial = do
   -- remove all the strategies which contains any of the new queens
   let strat1 = Set.filter (Set.disjoint positions . (.unStrategy)) partial.strategies
   -- from each strategy, remove the directly attacked candidates
-  let attacked = Set.unions $ Set.map (\pos -> partial.directlyAttacked Map.! pos) positions
+  let attacked = Set.unions $ Set.map (partial.directlyAttacked !) positions
   let newStrategies = Set.map (eliminateFromStrategy attacked) strat1
   -- fail if this makes some strategies empty
   -- then we are out of candidates
@@ -116,7 +115,8 @@ mkPartial problem =
     { queens = Set.empty,
       strategies = Set.fromList $ map (Strategy . Set.fromList) (rowStrategies ++ columnStrategies ++ colorStrategies),
       directlyAttacked =
-        Map.fromList
+        array
+          ((0, 0), (n - 1, n - 1))
           [ ((r, c), directly (r, c))
             | r <- [0 .. n - 1],
               c <- [0 .. n - 1]
