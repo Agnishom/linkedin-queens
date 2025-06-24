@@ -95,7 +95,11 @@ solve problem partial = do
             newPartial <- placeQueen pos partial
             solve problem newPartial
         )
-        (pure partial)
+        ( do
+            -- Completeness: ensure enough queens were placed
+            guard $ Set.size partial.queens == size problem
+            pure partial
+        )
 
 -- A superstrategy is a union of all singleton strategies
 superstrategy :: Partial -> Set (Row, Column)
@@ -104,8 +108,6 @@ superstrategy partial = Set.unions $ Set.map (.unStrategy) $ Set.takeWhileAntito
 solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solution problem = do
   endState <- solve problem (mkPartial problem)
-  -- Completeness: ensure enough queens were placed
-  guard $ Set.size endState.queens == size problem
   pure (Set.toList endState.queens)
 
 -- | Create an initial empty partial solution for the given problem
