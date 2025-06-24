@@ -76,8 +76,8 @@ solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   ifte -- if-then-else
     (candidate problem partial)
-    ( \(x, y) -> do
-        let newBoard = placeQueen problem (x, y) partial
+    ( \pos -> do
+        let newBoard = placeQueen problem pos partial
         solve problem newBoard
     )
     (pure partial)

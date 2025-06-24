@@ -91,8 +91,8 @@ solve problem partial = do
       -- otherwise, continue with the usual candidate selection
       ifte
         (candidate partial)
-        ( \(x, y) -> do
-            newPartial <- placeQueen (x, y) partial
+        ( \pos -> do
+            newPartial <- placeQueen pos partial
             solve problem newPartial
         )
         (pure partial)

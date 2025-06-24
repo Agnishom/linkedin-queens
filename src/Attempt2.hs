@@ -118,8 +118,8 @@ solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
   ifte
     (candidate problem partial)
-    ( \(x, y) -> do
-        newPartial <- placeQueen problem (x, y) partial
+    ( \pos -> do
+        newPartial <- placeQueen problem pos partial
         solve problem newPartial
     )
     (pure partial)

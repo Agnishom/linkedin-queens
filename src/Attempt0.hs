@@ -60,9 +60,9 @@ solve problem partial =
     else do
       ifte -- if-then-else
         (candidate problem partial)
-        ( \(x, y) -> do
+        ( \pos -> do
             -- place a queen on the candidate cell
-            let newBoard = Set.insert (x, y) partial
+            let newBoard = Set.insert pos partial
             solve problem newBoard
         )
         (pure partial)

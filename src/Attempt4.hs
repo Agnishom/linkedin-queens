@@ -149,9 +149,9 @@ solve problem partial = do
   -- if there are no candidates left, we need to abort this branch
   ifte -- if-then-else
     (candidate partial) -- choose a candidate
-    ( \(x, y) -> do
+    ( \pos -> do
         -- place the queen in the chosen cell
-        newPartial <- placeQueen problem (x, y) partial
+        newPartial <- placeQueen problem pos partial
         -- continue to place the rest of the queens
         solve problem newPartial
     )
