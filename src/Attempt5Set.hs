@@ -70,28 +70,25 @@ choose = foldr ((<|>) . pure) empty
 candidate :: (MonadLogic m) => Partial -> m (Row, Column)
 candidate partial = do
   -- choose the strategy with the smallest set of candidates
-  Strategy s <- case Set.lookupMin partial.strategies of
-    Just strat -> pure strat
-    Nothing -> empty -- no strategies left, fail
-    -- choose a queen from the strategy
+  -- if no strategies are left, fail
+  Strategy s <- maybe empty pure (Set.lookupMin partial.strategies)
+  -- choose a queen from the strategy
   choose s
 
-solve :: (MonadLogic m) => Problem -> Partial -> m Partial
-solve problem partial = do
-  ifte
-    (candidate partial)
-    ( \pos -> do
-        newPartial <- placeQueen problem pos partial
-        solve problem newPartial
-    )
-    (pure partial)
+-- do an action m times
+repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
+repeatM n f = foldr (>=>) pure (replicate n f)
+
+extend :: (MonadLogic m) => Problem -> Partial -> m Partial
+extend problem partial = do
+  pos <- candidate partial
+  -- place a queen on the candidate cell
+  placeQueen problem pos partial
 
 solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solution problem = do
-  endState <- solve problem (mkPartial problem)
-  -- Completeness: ensure enough queens were placed
-  guard $ Set.size endState.queens == size problem
-  pure (Set.toList endState.queens)
+  endState <- repeatM (size problem) (extend problem) (mkPartial problem)
+  pure $ Set.toList endState.queens
 
 -- | Create an initial empty partial solution for the given problem
 mkPartial :: Problem -> Partial

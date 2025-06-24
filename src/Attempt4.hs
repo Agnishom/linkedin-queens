@@ -144,30 +144,23 @@ candidate partial
     -- We choose the strategy with the least number of candidates
     bestStrategy = minimumBy (compare `on` Set.size) availableStrategies
 
-solve :: (MonadLogic m) => Problem -> Partial -> m Partial
-solve problem partial = do
-  -- if there are no candidates left, we need to abort this branch
-  ifte -- if-then-else
-    (candidate partial) -- choose a candidate
-    ( \pos -> do
-        -- place the queen in the chosen cell
-        newPartial <- placeQueen problem pos partial
-        -- continue to place the rest of the queens
-        solve problem newPartial
-    )
-    -- if there are no more candidates, return the current state
-    (pure partial)
+-- do an action m times
+repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
+repeatM n f = foldr (>=>) pure (replicate n f)
+
+extend :: (MonadLogic m) => Problem -> Partial -> m Partial
+extend problem partial = do
+  pos <- candidate partial
+  -- place a queen on the candidate cell
+  placeQueen problem pos partial
 
 queenView :: Partial -> [(Row, Column)]
 queenView partial = [(x, y) | ((x, y), status) <- Map.toList partial.attempts, status == HasQueen]
 
 solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solution problem = do
-  endState <- solve problem (mkPartial problem)
-  let queens = queenView endState
-  -- Completeness: ensure enough queens were placed
-  guard (length queens == size problem)
-  pure queens
+  endState <- repeatM (size problem) (extend problem) (mkPartial problem)
+  pure $ queenView endState
 
 -- -- | Create an initial empty partial solution for the given problem
 mkPartial :: Problem -> Partial

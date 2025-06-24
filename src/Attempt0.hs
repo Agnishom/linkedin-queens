@@ -32,8 +32,8 @@ sound problem partial = soundRows && soundColumns && soundColors && soundCorners
     soundColors = all (soundColor problem partial) [0 .. size problem - 1]
     soundCorners = all (soundCorner partial) partial
 
-complete :: Problem -> Partial -> Bool
-complete problem partial = Set.size partial == size problem
+_complete :: Problem -> Partial -> Bool
+_complete problem partial = Set.size partial == size problem
 
 soundRow :: Partial -> Row -> Bool
 soundRow partial row = Set.size (Set.filter (\(i, _) -> i == row) partial) <= 1
@@ -53,22 +53,18 @@ soundCorner partial (x, y) = northWest && northEast && southWest && southEast
     southWest = Set.notMember (x + 1, y - 1) partial
     southEast = Set.notMember (x + 1, y + 1) partial
 
-solve :: (MonadLogic m) => Problem -> Partial -> m Partial
-solve problem partial =
-  if complete problem partial
-    then pure partial
-    else do
-      ifte -- if-then-else
-        (candidate problem partial)
-        ( \pos -> do
-            -- place a queen on the candidate cell
-            let newBoard = Set.insert pos partial
-            solve problem newBoard
-        )
-        (pure partial)
+-- do an action m times
+repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
+repeatM n f = foldr (>=>) pure (replicate n f)
+
+extend :: (MonadLogic m) => Problem -> Partial -> m Partial
+extend problem partial = do
+  pos <- candidate problem partial
+  -- place a queen on the candidate cell
+  pure $ Set.insert pos partial
 
 solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solution problem = do
-  endState <- solve problem Set.empty
+  endState <- repeatM (size problem) (extend problem) Set.empty
   guard $ sound problem endState
   pure (Set.toList endState)

@@ -72,23 +72,20 @@ candidate problem partial = do
   guard (isNothing (Map.lookup (x, y) partial))
   pure (x, y)
 
-solve :: (MonadLogic m) => Problem -> Partial -> m Partial
-solve problem partial = do
-  ifte -- if-then-else
-    (candidate problem partial)
-    ( \pos -> do
-        let newBoard = placeQueen problem pos partial
-        solve problem newBoard
-    )
-    (pure partial)
+-- do an action m times
+repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
+repeatM n f = foldr (>=>) pure (replicate n f)
+
+extend :: (MonadLogic m) => Problem -> Partial -> m Partial
+extend problem partial = do
+  pos <- candidate problem partial
+  -- place a queen on the candidate cell
+  pure $ placeQueen problem pos partial
 
 queenView :: Partial -> [(Row, Column)]
 queenView partial = [(x, y) | ((x, y), status) <- Map.toList partial, status == HasQueen]
 
 solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solution problem = do
-  endState <- solve problem Map.empty
-  let queens = queenView endState
-  -- Completeness: ensure enough queens were placed
-  guard (length queens == size problem)
-  pure queens
+  endState <- repeatM (size problem) (extend problem) Map.empty
+  pure $ queenView endState
