@@ -53,8 +53,6 @@ placeManyQueens :: (MonadLogic m) => Problem -> Set (Row, Column) -> Partial -> 
 placeManyQueens problem positions partial = do
   -- check if the set is sound
   guard $ sound problem positions
-  -- add all queens to the board
-  let newQueens = Set.union positions partial.queens
   -- remove all the strategies which contains any of the new queens
   let strat1 = Set.filter (Set.disjoint positions . (.unStrategy)) partial.strategies
   -- from each strategy, remove the directly attacked candidates
@@ -65,7 +63,7 @@ placeManyQueens problem positions partial = do
   guard $ Set.notMember (Strategy Set.empty) newStrategies
   pure $
     partial
-      { queens = newQueens,
+      { queens = Set.union positions partial.queens,
         strategies = newStrategies
       }
 
