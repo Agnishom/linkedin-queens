@@ -81,7 +81,7 @@ candidate partial = do
 
 solve :: (MonadLogic m) => Problem -> Partial -> m Partial
 solve problem partial = do
-  let super = superstrategy partial
+  let super = portfolio partial
   if not $ Set.null super
     then do
       -- if there are super strategies, place all queens from them
@@ -101,9 +101,9 @@ solve problem partial = do
             pure partial
         )
 
--- A superstrategy is a union of all singleton strategies
-superstrategy :: Partial -> Set (Row, Column)
-superstrategy partial = Set.unions $ Set.map (.unStrategy) $ Set.takeWhileAntitone (\(Strategy s) -> Set.size s == 1) partial.strategies
+-- A portfolio is a union of all singleton strategies
+portfolio :: Partial -> Set (Row, Column)
+portfolio partial = Set.unions $ Set.map (.unStrategy) $ Set.takeWhileAntitone (\(Strategy s) -> Set.size s == 1) partial.strategies
 
 solution :: (MonadLogic m) => Problem -> m [(Row, Column)]
 solution problem = do
