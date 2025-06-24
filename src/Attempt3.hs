@@ -139,7 +139,7 @@ _colorCandidate partial = do
 candidate :: (MonadLogic m) => Partial -> m (Row, Column)
 candidate = rowCandidate
 
--- do an action m times
+-- do an action n times
 repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
 repeatM n f = foldr (>=>) pure (replicate n f)
 

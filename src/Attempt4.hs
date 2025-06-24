@@ -144,7 +144,7 @@ candidate partial
     -- We choose the strategy with the least number of candidates
     bestStrategy = minimumBy (compare `on` Set.size) availableStrategies
 
--- do an action m times
+-- do an action n times
 repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
 repeatM n f = foldr (>=>) pure (replicate n f)
 

@@ -53,7 +53,7 @@ soundCorner partial (x, y) = northWest && northEast && southWest && southEast
     southWest = Set.notMember (x + 1, y - 1) partial
     southEast = Set.notMember (x + 1, y + 1) partial
 
--- do an action m times
+-- do an action n times
 repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
 repeatM n f = foldr (>=>) pure (replicate n f)
 

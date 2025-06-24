@@ -82,7 +82,7 @@ candidate partial = do
   -- choose a queen from the strategy
   choose s
 
--- do an action m times
+-- do an action n times
 repeatM :: (Monad m) => Int -> (a -> m a) -> a -> m a
 repeatM n f = foldr (>=>) pure (replicate n f)
 
