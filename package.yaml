@@ -29,6 +29,7 @@ extra-source-files:
 # Common GHC options used throughout the package.
 ghc-options:
 - -Wall
+- -O2
 
 data-files:
   - levels/*

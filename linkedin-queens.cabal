@@ -438,7 +438,7 @@ library
         Paths_linkedin_queens
     autogen-modules:
         Paths_linkedin_queens
-    ghc-options: -Wall
+    ghc-options: -Wall -O2
     build-depends:
         array,
         base ==4.19.*,
@@ -446,6 +446,7 @@ library
         directory,
         heaps >=0.4.1,
         logict,
+        mtl,
         sbv >=11.7
     hs-source-dirs:
         src
@@ -484,6 +485,7 @@ executable linkedin-queens
         heaps >=0.4.1,
         linkedin-queens,
         logict,
+        mtl,
         sbv >=11.7
     hs-source-dirs:
         app
@@ -506,7 +508,7 @@ executable linkedin-queens
         QuantifiedConstraints
         TupleSections
         ViewPatterns
-    ghc-options: -Wall
+    ghc-options: -Wall -O2
     default-language: Haskell2010
 
 benchmark linkedin-queens-bench
@@ -537,7 +539,7 @@ benchmark linkedin-queens-bench
         QuantifiedConstraints
         TupleSections
         ViewPatterns
-    ghc-options: -Wall
+    ghc-options: -Wall -O2
     build-depends:
         array,
         base ==4.19.*,
@@ -546,6 +548,7 @@ benchmark linkedin-queens-bench
         heaps >=0.4.1,
         linkedin-queens,
         logict,
+        mtl,
         sbv >=11.7,
         tasty-bench
     default-language: Haskell2010
