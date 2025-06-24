@@ -1,3 +1,17 @@
+# Haskell Solver for LinkedIn Queens
+
+[Blog Post](https://imiron.io/post/linkedin-queens/)
+
+> [!NOTE]
+> This repository accompanies the blogpost [Solving LinkedIn Queens with Haskell](https://imiron.io/post/linkedin-queens/). It contains backtracking based solutions to the problem,
+> with progressively complex optimizations. We explore different heuristics for generating and ranking candidates, and pruning the search space.
+
+To run benchmarks:
+
+```
+cabal bench -O2 --benchmark-options '--timeout 60'
+```
+
 ## Time for a Selection of Problems
 
 | Problem       | Attempt 0 | Attempt 1 | Attempt 2  | Attempt 3 | Attempt 4 | Attempt 5 (Heap) | Attempt 5 (Set)  | Attempt 6        | SMT Solver (Z3) |
@@ -17,8 +31,3 @@
 | **9** (137 problems)   | -         | -         | -         | 310 μs    | 448 μs           | 275 μs          | 243 μs          | 32.03 ms        |
 | **10** (60 problems)   | -         | -         | -         | 463 μs    | 664 μs           | 430 μs          | 376 μs          | 51 ms           |
 | **11**  (17 problems)  | -         | -         | -         | 682 μs    | 900 μs           | 652 μs          | 605 μs          | 67 ms           |
-
-
-```
-cabal bench --benchmark-options '--timeout 60'
-```
